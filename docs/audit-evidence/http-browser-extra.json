@@ -1,0 +1,61 @@
+[
+  {
+    "text": "Как можно оплатить?",
+    "status": 200,
+    "ms": 56,
+    "replyLength": 1523,
+    "hasOfficialSource": true,
+    "cartLines": 0,
+    "mentionsUnknown": true
+  },
+  {
+    "text": "Какие сроки доставки?",
+    "status": 200,
+    "ms": 46,
+    "replyLength": 1523,
+    "hasOfficialSource": true,
+    "cartLines": 0,
+    "mentionsUnknown": true
+  },
+  {
+    "text": "Есть ли минимальная партия?",
+    "status": 200,
+    "ms": 32,
+    "replyLength": 1523,
+    "hasOfficialSource": true,
+    "cartLines": 0,
+    "mentionsUnknown": true
+  },
+  {
+    "text": "Нет, не добавляй",
+    "status": 200,
+    "ms": 34,
+    "replyLength": 96,
+    "hasOfficialSource": false,
+    "cartLines": 0,
+    "mentionsUnknown": false
+  },
+  {
+    "text": "Да",
+    "status": 200,
+    "ms": 27,
+    "replyLength": 149,
+    "hasOfficialSource": false,
+    "cartLines": 0,
+    "mentionsUnknown": false
+  },
+  {
+    "name": "XSS escaped",
+    "executed": false,
+    "actualInjectedImages": 0
+  },
+  {
+    "name": "independent history",
+    "messages": 0,
+    "cartLines": 0
+  },
+  {
+    "name": "offline error",
+    "text": "Failed to fetch"
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "checkedAt": "2026-09-23T09:35:29.850Z",
+  "baseline": "025e15ee0ea4264b2127008e765263f3e0aed1a9",
+  "results": [
+    {
+      "name": "adding same SKU reprices existing quantity outside the displayed addition",
+      "pass": false,
+      "expected": {
+        "approvedAdditionalMinor": 210000,
+        "expectedIfOldLinesStayUnchanged": 600000
+      },
+      "actual": {
+        "cartBeforeMinor": 390000,
+        "proposalMinor": 210000,
+        "cartAfterMinor": 630000,
+        "actualDeltaMinor": 240000
+      }
+    },
+    {
+      "name": "accepted unit price produces an unsafe rounded line/cart total",
+      "pass": false,
+      "expected": {
+        "exactMinor": "27021597764222973",
+        "rejectOrExactArithmetic": true
+      },
+      "actual": {
+        "storedNumber": 27021597764222972,
+        "representedInteger": "27021597764222972",
+        "safeInteger": false
+      }
+    },
+    {
+      "name": "concurrent prepare and cart edit rechecks aggregate stock on confirmation",
+      "pass": true,
+      "expected": {
+        "confirmationCode": "INSUFFICIENT_STOCK",
+        "unchangedQuantity": 24
+      },
+      "actual": {
+        "confirmationCode": "INSUFFICIENT_STOCK",
+        "quantity": 24,
+        "pendingPreviewQuantity": 2
+      }
+    },
+    {
+      "name": "missing CSRF is controlled denial",
+      "pass": true,
+      "expected": {
+        "status": 403
+      },
+      "actual": {
+        "status": 403,
+        "code": "CSRF"
+      }
+    },
+    {
+      "name": "cross-origin CSRF is controlled denial",
+      "pass": true,
+      "expected": {
+        "status": 403
+      },
+      "actual": {
+        "status": 403,
+        "code": "CSRF"
+      }
+    },
+    {
+      "name": "equal character count non-ASCII CSRF is controlled denial",
+      "pass": false,
+      "expected": {
+        "status": 403
+      },
+      "actual": {
+        "status": 500,
+        "code": "ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH"
+      }
+    },
+    {
+      "name": "POST cannot mint a session without an existing cookie",
+      "pass": true,
+      "expected": "SESSION",
+      "actual": "SESSION"
+    }
+  ]
+}

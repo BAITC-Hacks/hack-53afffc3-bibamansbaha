@@ -1,0 +1,26 @@
+[
+  {
+    "label": "contextual second option",
+    "elapsedMs": 2242,
+    "result": {
+      "query": "DEMO-C16-B",
+      "quantity": 5,
+      "intent": "search"
+    }
+  },
+  {
+    "label": "live JPEG packaging units",
+    "elapsedMs": 1576,
+    "lines": [
+      {
+        "query": "Кабель ВВГнг 3x2,5",
+        "quantity": 2,
+        "source": "audit-independent-packaging.jpg, распознанная строка 1"
+      }
+    ],
+    "warnings": [
+      "Текст распознан моделью и может содержать ошибки. Проверьте маркировку, количество и единицы; невидимые технические параметры не определяются."
+    ],
+    "verified": true
+  }
+]

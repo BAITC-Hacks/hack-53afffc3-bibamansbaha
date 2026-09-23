@@ -1,0 +1,14 @@
+{
+  "fractional": {
+    "quantity": "0.5",
+    "decreaseDisabled": true,
+    "quantityInputs": 0
+  },
+  "stale": {
+    "status": 409,
+    "display": "Ожидает вашего подтверждения",
+    "confirmEnabled": true,
+    "error": "Предложение уже не действует. Подготовьте новое.",
+    "actualProposalStatus": "cancelled"
+  }
+}

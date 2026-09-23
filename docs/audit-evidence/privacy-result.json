@@ -1,0 +1,10 @@
+{
+  "requestStatus": 200,
+  "subsequentStateStatus": 200,
+  "testPaymentValueRetained": true,
+  "cvvMarkerRetained": true,
+  "catalogMode": "fixture",
+  "modelConfigured": false,
+  "database": "isolated .tmp/audit/privacy-isolated.sqlite",
+  "sensitiveValue": "[SYNTHETIC VALUE REDACTED]"
+}

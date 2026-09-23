@@ -1,0 +1,17 @@
+{
+  "lines": [
+    {
+      "query": "200300285_",
+      "quantity": 7,
+      "unit": "шт",
+      "source": "audit-independent-quantity.pdf, страница 1"
+    },
+    {
+      "query": "Cable VVGng 3x2.5",
+      "quantity": 25,
+      "unit": "м",
+      "source": "audit-independent-quantity.pdf, страница 1"
+    }
+  ],
+  "warnings": []
+}

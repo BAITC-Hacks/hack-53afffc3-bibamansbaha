@@ -1,0 +1,426 @@
+[
+  {
+    "tag": "INPUT",
+    "name": "Наименование",
+    "value": "DEMO-C16-OUT",
+    "rect": {
+      "x": 42.40625,
+      "y": 532.984375,
+      "w": 299.59375,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "INPUT",
+    "name": "Единица в спецификации",
+    "value": "шт",
+    "rect": {
+      "x": 42.40625,
+      "y": 609.171875,
+      "w": 299.59375,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "INPUT",
+    "name": "Количество",
+    "value": "4",
+    "rect": {
+      "x": 42.40625,
+      "y": 683.359375,
+      "w": 80,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "FORM",
+    "hitClass": "composer ",
+    "composerHit": true,
+    "scrollY": 0
+  },
+  {
+    "tag": "SELECT",
+    "name": "Товар каталогаВыбрать / исключить строкуДемо автомат C16, 1P, 6 кА — исходная позиция · 1 800 ₸ / шт",
+    "value": "",
+    "rect": {
+      "x": 42.40625,
+      "y": 759.546875,
+      "w": 299.59375,
+      "h": 40
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "TEXTAREA",
+    "hitClass": "",
+    "composerHit": true,
+    "scrollY": 0
+  },
+  {
+    "tag": "SUMMARY",
+    "name": "DEMO-C16-OUT · Совпадение",
+    "rect": {
+      "x": 42.40625,
+      "y": 808.546875,
+      "w": 299.59375,
+      "h": 14.390625
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "DIV",
+    "hitClass": "composer-bottom",
+    "composerHit": true,
+    "scrollY": 0
+  },
+  {
+    "tag": "SUMMARY",
+    "name": "DEMO-C16-IN · Аналог",
+    "rect": {
+      "x": 42.40625,
+      "y": 831.9375,
+      "w": 299.59375,
+      "h": 14.390625
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "FORM",
+    "hitClass": "composer ",
+    "composerHit": true,
+    "scrollY": 0
+  },
+  {
+    "tag": "INPUT",
+    "name": "Наименование",
+    "value": "DEMO-CABLE",
+    "rect": {
+      "x": 42,
+      "y": 427.921875,
+      "w": 300,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 517
+  },
+  {
+    "tag": "INPUT",
+    "name": "Единица в спецификации",
+    "value": "м",
+    "rect": {
+      "x": 42,
+      "y": 504.109375,
+      "w": 300,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 517
+  },
+  {
+    "tag": "INPUT",
+    "name": "Количество (м)",
+    "value": "3.5",
+    "rect": {
+      "x": 42,
+      "y": 595.890625,
+      "w": 80,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 517
+  },
+  {
+    "tag": "SELECT",
+    "name": "Товар каталогаВыбрать / исключить строкуДемо кабель ВВГнг-LS 3×2,5 мм² · 450 ₸ / м",
+    "value": "DEMO-CABLE",
+    "rect": {
+      "x": 42,
+      "y": 672.078125,
+      "w": 300,
+      "h": 40
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "DIV",
+    "hitClass": "operation-status",
+    "composerHit": true,
+    "scrollY": 517
+  },
+  {
+    "tag": "SUMMARY",
+    "name": "DEMO-CABLE · Совпадение",
+    "rect": {
+      "x": 42,
+      "y": 721.078125,
+      "w": 300,
+      "h": 14.390625
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "TEXTAREA",
+    "hitClass": "",
+    "composerHit": true,
+    "scrollY": 517
+  },
+  {
+    "tag": "BUTTON",
+    "name": "Сопоставить заново",
+    "value": "",
+    "rect": {
+      "x": 18,
+      "y": 771.46875,
+      "w": 324,
+      "h": 38.5
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "DIV",
+    "hitClass": "composer-bottom",
+    "composerHit": true,
+    "scrollY": 517
+  },
+  {
+    "tag": "BUTTON",
+    "name": "Подготовить предложение · 1",
+    "value": "",
+    "rect": {
+      "x": 18,
+      "y": 818.96875,
+      "w": 324,
+      "h": 38.5
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "FORM",
+    "hitClass": "composer ",
+    "composerHit": true,
+    "scrollY": 517
+  },
+  {
+    "tag": "TEXTAREA",
+    "name": "",
+    "value": "",
+    "rect": {
+      "x": 33,
+      "y": 718.21875,
+      "w": 294,
+      "h": 65
+    },
+    "insideSpec": false,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "TEXTAREA",
+    "hitClass": "",
+    "composerHit": true,
+    "scrollY": 517
+  },
+  {
+    "tag": "BUTTON",
+    "name": "Прикрепить файл",
+    "value": "",
+    "rect": {
+      "x": 33,
+      "y": 788.21875,
+      "w": 104.015625,
+      "h": 42
+    },
+    "insideSpec": false,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "SPAN",
+    "hitClass": "",
+    "composerHit": true,
+    "scrollY": 517
+  },
+  {
+    "tag": "BODY",
+    "name": "EKTЭЛЕКТРОТЕХНИКАДЛЯ ВАШИХ ЗАДАЧПодбор оборудованияКорзина0Каталог ekt.kz ↗РАБОЧ",
+    "rect": {
+      "x": 0,
+      "y": -517,
+      "w": 360,
+      "h": 2040.484375
+    },
+    "insideSpec": false,
+    "inViewport": false,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 517
+  },
+  {
+    "tag": "A",
+    "name": "EKT — ассистент",
+    "rect": {
+      "x": 16,
+      "y": 17,
+      "w": 68.125,
+      "h": 32
+    },
+    "insideSpec": false,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "SPAN",
+    "hitClass": "brand-mark",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "A",
+    "name": "Подбор оборудования",
+    "rect": {
+      "x": 169.640625,
+      "y": 25.796875,
+      "w": 100.125,
+      "h": 14.390625
+    },
+    "insideSpec": false,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "A",
+    "hitClass": "active",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "A",
+    "name": "Корзина0",
+    "rect": {
+      "x": 283.765625,
+      "y": 25.59375,
+      "w": 60.234375,
+      "h": 14.796875
+    },
+    "insideSpec": false,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "A",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "INPUT",
+    "name": "Наименование",
+    "value": "DEMO-C16-OUT",
+    "rect": {
+      "x": 42.40625,
+      "y": 532.984375,
+      "w": 299.59375,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "INPUT",
+    "name": "Единица в спецификации",
+    "value": "шт",
+    "rect": {
+      "x": 42.40625,
+      "y": 609.171875,
+      "w": 299.59375,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": false,
+    "hitTag": "INPUT",
+    "hitClass": "",
+    "composerHit": false,
+    "scrollY": 0
+  },
+  {
+    "tag": "INPUT",
+    "name": "Количество",
+    "value": "4",
+    "rect": {
+      "x": 42.40625,
+      "y": 683.359375,
+      "w": 80,
+      "h": 43.59375
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "FORM",
+    "hitClass": "composer ",
+    "composerHit": true,
+    "scrollY": 0
+  },
+  {
+    "tag": "SELECT",
+    "name": "Товар каталогаВыбрать / исключить строкуДемо автомат C16, 1P, 6 кА — исходная позиция · 1 800 ₸ / шт",
+    "value": "",
+    "rect": {
+      "x": 42.40625,
+      "y": 759.546875,
+      "w": 299.59375,
+      "h": 40
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "TEXTAREA",
+    "hitClass": "",
+    "composerHit": true,
+    "scrollY": 0
+  },
+  {
+    "tag": "SUMMARY",
+    "name": "DEMO-C16-OUT · Совпадение",
+    "rect": {
+      "x": 42.40625,
+      "y": 808.546875,
+      "w": 299.59375,
+      "h": 14.390625
+    },
+    "insideSpec": true,
+    "inViewport": true,
+    "covered": true,
+    "hitTag": "DIV",
+    "hitClass": "composer-bottom",
+    "composerHit": true,
+    "scrollY": 0
+  }
+]

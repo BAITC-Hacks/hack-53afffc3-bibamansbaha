@@ -1,0 +1,93 @@
+// Read-only product audit: isolated memory databases and deterministic local data.
+import { CartService } from '../../src/server/cart.ts';
+import { Catalog, normalizeProduct } from '../../src/server/catalog.ts';
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const results: object[] = [];
+const accept = (p: any) => ({ proposalId: p.id, version: p.version, hash: p.hash, confirmed: true });
+const record = (name: string, expected: unknown, actual: unknown, pass: boolean) => {
+  const row = { name, pass, expected, actual }; results.push(row); console.log(JSON.stringify(row));
+};
+
+{
+  const catalog = new Catalog('fixture'); const get = catalog.get.bind(catalog); let price = 195000;
+  catalog.get = async (...args) => ({ ...await get(...args), priceMinor: price });
+  const service = new CartService(':memory:', catalog), owner = service.createSession();
+  const first = await service.prepare(owner.id, [{ productId: 'DEMO-C16-IN', quantity: 2 }]);
+  const before = (await service.confirm(owner.id, accept(first))).cart;
+  price = 210000;
+  const more = await service.prepare(owner.id, [{ productId: 'DEMO-C16-IN', quantity: 1 }]);
+  const after = (await service.confirm(owner.id, accept(more))).cart;
+  const actualDelta = after.totalMinor - before.totalMinor;
+  record('adding same SKU reprices existing quantity outside the displayed addition',
+    { approvedAdditionalMinor: more.totalMinor, expectedIfOldLinesStayUnchanged: before.totalMinor + more.totalMinor },
+    { cartBeforeMinor: before.totalMinor, proposalMinor: more.totalMinor, cartAfterMinor: after.totalMinor, actualDeltaMinor: actualDelta },
+    actualDelta === more.totalMinor);
+  service.close();
+}
+
+{
+  const catalog = new Catalog('fixture'); const get = catalog.get.bind(catalog);
+  const maximum = normalizeProduct({ id: 1, article: 'BOUNDARY', name: 'Numeric boundary', price: '90071992547409.91', quantity: 10 }).priceMinor!;
+  catalog.get = async (...args) => ({ ...await get(...args), priceMinor: maximum, stock: 10 });
+  const service = new CartService(':memory:', catalog), owner = service.createSession();
+  const proposal = await service.prepare(owner.id, [{ productId: 'DEMO-C16-IN', quantity: 3 }]);
+  const saved = (await service.confirm(owner.id, accept(proposal))).cart;
+  const expectedExact = (BigInt(maximum) * 3n).toString();
+  const actualExact = BigInt(saved.totalMinor).toString();
+  record('accepted unit price produces an unsafe rounded line/cart total',
+    { exactMinor: expectedExact, rejectOrExactArithmetic: true },
+    { storedNumber: saved.totalMinor, representedInteger: actualExact, safeInteger: Number.isSafeInteger(saved.totalMinor) },
+    actualExact === expectedExact);
+  service.close();
+}
+
+{
+  const catalog = new Catalog('fixture'); const get = catalog.get.bind(catalog);
+  const service = new CartService(':memory:', catalog), owner = service.createSession();
+  const initial = await service.prepare(owner.id, [{ productId: 'DEMO-C16-IN', quantity: 1 }]);
+  await service.confirm(owner.id, accept(initial));
+  let release!: () => void, started!: () => void;
+  const barrier = new Promise<void>(r => release = r), entered = new Promise<void>(r => started = r);
+  let delayed = false;
+  catalog.get = async (...args) => { const p = await get(...args); if (!delayed) { delayed = true; started(); await barrier; } return p; };
+  const preparing = service.prepare(owner.id, [{ productId: 'DEMO-C16-IN', quantity: 2 }]);
+  await entered;
+  await service.updateCart(owner.id, 'DEMO-C16-IN', 24);
+  release();
+  const p = await preparing;
+  let code = 'SUCCESS'; try { await service.confirm(owner.id, accept(p)); } catch (error: any) { code = error.code; }
+  record('concurrent prepare and cart edit rechecks aggregate stock on confirmation',
+    { confirmationCode: 'INSUFFICIENT_STOCK', unchangedQuantity: 24 },
+    { confirmationCode: code, quantity: service.getCart(owner.id).lines[0].quantity, pendingPreviewQuantity: p.lines[0].quantity },
+    code === 'INSUFFICIENT_STOCK' && service.getCart(owner.id).lines[0].quantity === 24);
+  service.close();
+}
+
+process.env.DATABASE_PATH = ':memory:';
+process.env.CATALOG_MODE = 'fixture';
+process.env.APP_ORIGIN = 'http://127.0.0.1:3000';
+{
+  const { NextRequest } = await import('next/server');
+  const { session, authorize, failure } = await import('../../src/server/http.ts');
+  const { runtime } = await import('../../src/server/runtime.ts');
+  const fresh = new NextRequest('http://127.0.0.1:3000/api/state');
+  const owner = session(fresh);
+  const make = (token: string, origin = 'http://127.0.0.1:3000') => new NextRequest('http://127.0.0.1:3000/api/proposal', { method: 'POST', headers: { origin, 'x-csrf-token': token } });
+  for (const [name, request, expectedStatus] of [
+    ['missing CSRF is controlled denial', make(''), 403],
+    ['cross-origin CSRF is controlled denial', make(owner.csrf, 'https://invalid.example'), 403],
+    ['equal character count non-ASCII CSRF is controlled denial', make('é'.repeat(64)), 403],
+  ] as const) {
+    let status = 200; let code = 'SUCCESS';
+    try { authorize(request, owner); } catch (error: any) { const response = failure(error); status = response.status; code = error.code ?? error.constructor.name; }
+    record(name, { status: expectedStatus }, { status, code }, status === expectedStatus);
+  }
+  let noSessionCode = 'SUCCESS'; try { session(make(''), false); } catch (error: any) { noSessionCode = error.code; }
+  record('POST cannot mint a session without an existing cookie', 'SESSION', noSessionCode, noSessionCode === 'SESSION');
+  runtime.cart.close();
+}
+
+writeFileSync(fileURLToPath(new URL('./server-results.json', import.meta.url)), JSON.stringify({ checkedAt: new Date().toISOString(), baseline: '025e15ee0ea4264b2127008e765263f3e0aed1a9', results }, null, 2));
+process.exitCode = results.some((row: any) => !row.pass) ? 1 : 0;

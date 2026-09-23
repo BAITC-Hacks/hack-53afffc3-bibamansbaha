@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "elapsedMs": 1389,
+  "input": "Найди DEMO-CABLE, нужно 2 упаковки",
+  "proposalLines": [
+    {
+      "sku": "DEMO-CABLE",
+      "catalogUnit": "м",
+      "quantity": 2,
+      "requestedUnit": null,
+      "unitConfirmed": null
+    }
+  ],
+  "cartCount": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "Найди DEMO-CABLE, нужно 2 упаковки"
+    },
+    {
+      "role": "assistant",
+      "text": "Найдено 1 поз. Проверьте характеристики и выберите товар для предложения. "
+    }
+  ],
+  "modelVerified": true
+}
