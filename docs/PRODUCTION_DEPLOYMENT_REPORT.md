@@ -38,6 +38,15 @@
 
 ## Текущая матрица передачи
 
+## Продолжение после подтверждённой перезагрузки (17:16 UTC+5)
+
+Windows загружен заново в 17:09:55. Проверены WSL 2.7.14.0, firmware virtualization=true,
+HypervisorPresent=true и hypervisorlaunchtype=Auto. Оба компонента Windows имеют состояние
+Enabled, но отсутствуют службы vmcompute/hns и файлы vmcompute.exe/hns.dll; Ubuntu ещё нет.
+Повторное включение SVM не требуется по этой диагностике. Запущено штатное восстановление
+DISM RestoreHealth, затем SFC; результат ещё ожидается. Это текущая диагностика, не готовый deploy.
+Платных вызовов нового acceptance по-прежнему 0, инстансы не создавались.
+
 | Поле | Статус |
 | --- | --- |
 | Public HTTPS URL / deployed SHA | Не получены |
