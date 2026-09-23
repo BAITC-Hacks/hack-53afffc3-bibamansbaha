@@ -27,6 +27,7 @@ playwright-report/
 .tmp/
 .playwright/
 .playwright-cli/
+*.tsbuildinfo
 # Locally installed tool instructions are not application source
 .agents/
 .claude/

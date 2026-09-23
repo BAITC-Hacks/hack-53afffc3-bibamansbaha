@@ -15,3 +15,12 @@
 4. Verify critical invariants, browser scenarios, responsive UI and production build.
 
 Git checkpoints target 15 minutes between successful pushes, with preparation at 12 minutes and a 20-minute upper target during active work. No real orders will be placed.
+
+## Integration and cart checkpoint
+
+- Downloaded and parsed both supplied Google documents privately; confirmed official required scenarios.
+- Verified two catalog pages and detail endpoint with HTTP 200; documented observed fields and a conflicting current rating.
+- Local push reminder tested on shortened thresholds, then launched at 12/15/18 minutes without Git operations.
+- Next.js/React dependencies installed. Initial catalog adapter and SQLite cart module implemented.
+- Cart behavior test verified empty-before-confirmation and duplicate-confirmation protection; broader stock/session tests added.
+- UI, parsers and model smoke tests are in progress. Whole-app build has not yet been verified.
