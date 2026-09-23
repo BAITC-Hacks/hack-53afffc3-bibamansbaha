@@ -8,8 +8,8 @@ test('Postgres persists cart across invocations, isolates sessions and serialize
  const schema='ekt_test_'+Date.now();await admin.query(`CREATE SCHEMA ${schema}`);
  const url=new URL(process.env.TEST_DATABASE_URL!);url.searchParams.set('options',`-c search_path=${schema}`);
  process.env.DATABASE_URL=url.toString();process.env.CATALOG_MODE='fixture';process.env.OPENAI_API_KEY='';process.env.OPENAI_MODEL='';process.env.APP_ORIGIN='http://127.0.0.1:3000';
- const {postgres}=await import('../src/server/postgres');
- t.after(async()=>{await postgres().end();await admin.query(`DROP SCHEMA ${schema} CASCADE`);await admin.end();});
+ const {postgres,closePostgres}=await import('../src/server/postgres');
+ t.after(async()=>{await closePostgres();await admin.query(`DROP SCHEMA ${schema} CASCADE`);await admin.end();});
  await postgres().query(readFileSync(new URL('../migrations/001_neon.sql',import.meta.url),'utf8'));
  const {GET,POST}=await import('../src/app/api/[action]/route');const {NextRequest}=await import('next/server');
  const first=await GET(new NextRequest('http://127.0.0.1:3000/api/state'),{params:Promise.resolve({action:'state'})});assert.equal(first.status,200);
@@ -27,5 +27,13 @@ test('Postgres persists cart across invocations, isolates sessions and serialize
  const attempts=await Promise.allSettled(Array.from({length:9},()=>a.reserve('gpt-5.5',{inputTokens:1000,outputTokens:100})));
  assert.equal(attempts.filter(r=>r.status==='fulfilled').length,6);assert.equal((await a.status()).remainingCalls,0);
  await d.reserve('gpt-5.5',{inputTokens:1000,outputTokens:100});assert.equal((await d.status()).remainingCalls,99);assert.equal((await a.status()).remainingCalls,0);
+ process.env.OPENAI_API_KEY='test-only';process.env.OPENAI_MODEL='gpt-5.5';process.env.MODEL_BUDGET_MODE='demo';
+ // Three session transactions need auxiliary budget queries without starving their own pool.
+ const simultaneous=await Promise.all(Array.from({length:3},()=>GET(new NextRequest('http://127.0.0.1:3000/api/state',{headers:{cookie}}),{params:Promise.resolve({action:'state'})})));
+ assert.deepEqual(simultaneous.map(r=>r.status),[200,200,200]);
+ process.env.DEMO_BUDGET_MAX_CALLS='0';
+ assert.equal((await new PostgresModelBudget('demo').status()).remainingCalls,0);
+ delete process.env.DEMO_BUDGET_MAX_CALLS;
+ assert.equal((await new PostgresModelBudget('demo').status()).remainingCalls,0);
  const snapshot=await postgres().query('SELECT state FROM ekt_sessions WHERE id=$1',[cookie.split('=')[1]]);assert.equal(JSON.parse(snapshot.rows[0].state.cart).revision,1);
 });

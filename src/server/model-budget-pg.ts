@@ -4,9 +4,16 @@ import { modelReserveUSD, type ModelBudgetSettlement, type ModelTokenBounds } fr
 import { AppError } from './errors';
 
 export class PostgresModelBudget {
- constructor(private purpose:'acceptance'|'demo'){}
+ private maxCalls:number;
+ private maxNanoUSD:number;
+ constructor(private purpose:'acceptance'|'demo'){
+  const prefix=purpose==='acceptance'?'MODEL':'DEMO';const callsCap=purpose==='acceptance'?6:100;const usdCap=purpose==='acceptance'?0.25:1;
+  this.maxCalls=Number(process.env[`${prefix}_BUDGET_MAX_CALLS`]??callsCap);const usd=Number(process.env[`${prefix}_BUDGET_MAX_USD`]??usdCap);
+  if(!Number.isInteger(this.maxCalls)||this.maxCalls<0||this.maxCalls>callsCap||!Number.isFinite(usd)||usd<0||usd>usdCap)throw new AppError('MODEL_BUDGET_CONFIG','Некорректный лимит AI.',503);
+  this.maxNanoUSD=Math.floor(usd*1e9);
+ }
  close(){}
- private async initialize(){await postgres().query('INSERT INTO ekt_budget_policy(purpose,max_calls,max_nano_usd) VALUES($1,$2,$3) ON CONFLICT(purpose) DO NOTHING',[this.purpose,this.purpose==='acceptance'?6:100,this.purpose==='acceptance'?250000000:1000000000]);}
+ private async initialize(){await postgres().query('INSERT INTO ekt_budget_policy(purpose,max_calls,max_nano_usd) VALUES($1,$2,$3) ON CONFLICT(purpose) DO UPDATE SET max_calls=LEAST(ekt_budget_policy.max_calls,excluded.max_calls),max_nano_usd=LEAST(ekt_budget_policy.max_nano_usd,excluded.max_nano_usd)',[this.purpose,this.maxCalls,this.maxNanoUSD]);}
  async reserve(model:string,bounds:ModelTokenBounds){
   const reserve=Math.ceil(modelReserveUSD(model,bounds)*1e9);await this.initialize();
   return pgTransaction(async client=>{

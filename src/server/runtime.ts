@@ -36,5 +36,5 @@ export async function withPersistence<T>(request:NextRequest,action:()=>Promise<
    if(snapshot){const s=snapshot.session;await client.query('INSERT INTO ekt_sessions(id,created_at,expires_at,state) VALUES($1,$2,$3,$4::jsonb) ON CONFLICT(id) DO UPDATE SET state=excluded.state,revision=ekt_sessions.revision+1',[s.id,s.createdAt,new Date(Date.parse(s.createdAt)+86400000).toISOString(),JSON.stringify(snapshot)]);}
    return result;
   }finally{cart.close();}
- });
+ },true);
 }
