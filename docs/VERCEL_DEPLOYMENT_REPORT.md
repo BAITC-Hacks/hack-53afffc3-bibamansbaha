@@ -3,9 +3,12 @@
 23 сентября 2026. Публичное демо: **https://ekt-assistant.vercel.app**.
 
 Рабочая версия приложения: `4668b758177ccd4d3d3d4816cd15e3cd62b851f6`.
-Проверенный production deployment: `dpl_8e2z1hfYb2FZUtg4KDkbg7wYo1cP`.
-Финальная отправка README/этого отчёта не меняет код приложения; её SHA будет
-передан в metadata последнего Vercel deployment. Публикуется архив только tracked-файлов main.
+Приёмка с настоящей моделью: deployment `dpl_8e2z1hfYb2FZUtg4KDkbg7wYo1cP`.
+Повторный production deployment: `dpl_8N9TWXxLWV6r8STYiPG29DKiaEjM`,
+SHA `84eb74cf1e288dc3cb2e79980883fe2df4eccfe5`, статус READY подтверждён API Vercel.
+Код приложения тот же; добавлены README/доказательства. После повторного развёртывания
+проверены обе корзины, браузер и постоянные budget ledgers. Публикуется архив
+только tracked-файлов main. Итоговое дополнение этого отчёта не меняет runtime-код.
 
 По распоряжению владельца Brev/WSL больше не используются. Уже запущенный DISM
 штатно завершился (0), SFC штатно завершился (1, требуется restart). Новых циклов
@@ -16,7 +19,7 @@ Neon CLI 5.0.1. Созданы один Vercel project `ekt-assistant` (Next.js,
 и один Neon project `late-math-54657922` / `ekt-assistant` / `neondb`, PostgreSQL 17,
 AWS us-east-1, 0.25 CU. Организация Neon подтверждена как free. Платные функции
 и автопополнение не включались. GitHub integration пока отказала в подключении
-репозитория; CLI deployment доступен и будет привязан к проверенному main SHA.
+репозитория; CLI deployment привязан к проверенному main SHA через metadata.
 
 Минимальный перенос: PostgreSQL хранит целиком исходный session aggregate
 (cart/items, proposals, confirmation receipts, requested_lines, messages/context).
@@ -27,14 +30,15 @@ production нет. PostgreSQL SELECT FOR UPDATE удерживает блоки�
 Деньги остаются целыми minor units, точный расчёт через BigInt сохранён.
 
 Отдельные PostgreSQL ledger: acceptance 6/$0.25, demo 100/$1, без автоматического
-сброса. GPT-5.5 Responses low подготовлен и проверяется без платных генераций.
+сброса. GPT-5.5 Responses low проверен пятью ограниченными платными вызовами.
 Тариф $5/M input, $30/M output; reasoning входит в output, не считается дважды.
 Vision high резервирует до 3000 image tokens плюс запас на инструкции/схему.
 Резервы на запрос рассчитываются до вызова, ошибки/timeout сохраняют резерв.
 
-Acceptance calls этого развёртывания: **5**, расчётный расход **$0.014855**. $10 резерва аккаунта
-не расходуются; приложение будет ограничено $1 demo + $0.25 acceptance.
-Это ограничение приложения, не чтение общего billing balance аккаунта.
+Acceptance calls этого развёртывания: **5**, расчётный расход **$0.014855**.
+Приложение ограничено $1 demo + $0.25 acceptance: оно не может израсходовать
+заявленные $50 до резервных $10. Общий остаток и расходы других приложений
+не проверены; это ограничение приложения, не чтение billing balance аккаунта.
 
 ## Подтверждённые результаты
 
@@ -83,9 +87,10 @@ Demo — отдельные 100 вызовов/$1. Смена deployment не о
 | Reload / две сессии | Корзина сохранилась; новая сессия пуста |
 | 360 / 390 / 1280 / 1440 | Проверены после загрузки состояния, нет горизонтального overflow; screenshots в docs/vercel-evidence |
 | `/cart`, `/embed` | Корзина видна, виджет открывает рабочий чат |
-| Browser errors | В проверенном бесплатном пути pageErrors=[] |
-| Secrets | Staged scan PASS; архив публикации содержит только tracked source; credentials только server env |
-| Повторный deployment | Проверка финального переключения acceptance→demo выполняется перед передачей |
+| Browser errors | Бесплатный путь и обе корзины после redeploy: pageErrors=[], console errors=[], failed requests=[] |
+| Secrets | Staged scan PASS; только tracked source; проверенные публичные HTML/JS/state не содержат значений OpenAI/EKT/Neon credentials |
+| Повторный deployment | PASS: CSV-корзина 2 строки/502500 minor units/revision 1; vision-корзина 1 строка/90000/revision 1; reload PASS |
+| Разделение ledger после redeploy | Acceptance: 5 calls, 14855000 nanoUSD; demo: 0 calls, cap 100/$1; старые записи не сброшены |
 
 ## Исправления по найденным deployment-проблемам
 

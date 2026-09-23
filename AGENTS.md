@@ -1,6 +1,8 @@
 # EKT Assistant
 
 - Preserve existing work and the remote history.
+- Production is Vercel + Neon PostgreSQL + GPT-5.5 Responses (reasoning low). Brev/WSL repair and deployment are retired by the owner; do not resume them without an explicit new request.
+- Keep acceptance (6 calls/$0.25) and demo (100 calls/$1) budgets separate and persistent in Neon. Do not reset ledgers or raise caps. Store credentials only in server-side secrets.
 - Authorized push destination: https://github.com/BAITC-Hacks/hack-53afffc3-bibamansbaha.git, branch `main` (verified remote default).
 - At the start, make a small useful safe checkpoint; during active development prepare at 12 minutes, target a verified push every 15 minutes, avoid exceeding 20 minutes when access works.
 - Explicitly stage reviewed paths; exclude credentials, private DOCX/extracts, uploads, runtime databases and local snapshots. Never force push or rewrite published history.
