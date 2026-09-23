@@ -1,29 +1,212 @@
-# EKT remediation — work in progress
+# Отчёт об исправлениях EKT Assistant
 
-Started 2026-09-23 10:10 UTC / 15:10 UTC+5 from current main `420a171751607cd4b9a35890f6af9962d9891c7a`. The original `docs/FINAL_AUDIT.md` remains unchanged. The user authorized targeted fixes through `CODEX_EKT_REMEDIATION_PROMPT.md`.
+Дата: 23 сентября 2026 года. Репозиторий: `BAITC-Hacks/hack-53afffc3-bibamansbaha`, ветка `main`.
 
-Order: payment privacy (EKT-002), agreed cart effects and safe arithmetic (001/014), unit retention (003/004), file parsing (005–007), selection/cart/conflict/offline UI (008–010/016), widget/mobile UI (011–013), CSRF (015), bounded catalog measurements (017), external contracts/production verification (018–020).
+Проверенный продукт: **`9762068e6146d419938be37b52af154144e55260`**. Начальная точка исправлений: `420a171751607cd4b9a35890f6af9962d9891c7a`. SHA финального коммита с отчётом указан отдельно в сопроводительном сообщении после проверки remote; он не является новой версией продукта.
 
-Tests use isolated sessions/databases and deterministic providers, preserving existing tests. The owner separately authorized exactly two short gpt-4.1-mini text calls with a $0.02 ceiling: both succeeded, 602 input + 58 output tokens, estimated $0.0003336; no retries. Native orders and guessed integration APIs are excluded. Existing user data is not cleaned without the required separate review/authorization.
+Основания: официальный кейс, исходный аудит и `CODEX_EKT_REMEDIATION_PROMPT.md`. Исторический `docs/FINAL_AUDIT.md` не изменён; его Git blob: `4b0d0ef0686213663c1e077bebfd13445ebab593`. Стек, зависимости и модель не заменялись. Реальные заказы не выполнялись.
 
-Initial status: EKT-001–016 `not_fixed`; EKT-017 `not_fixed` (risk, not a proven root cause); EKT-018/019/020 `blocked_external` pending verification. Each result will gain a regression, evidence, commit and final status as work proceeds.
+## Результат и условия
 
-## Checkpoint 1 — privacy and financial planning
+**15 пунктов fixed_verified, EKT-002 partially_fixed, EKT-017 mitigated, EKT-018/019/020 blocked_external.** Статусы относятся к проверенным сценариям и границам ниже, а не к гарантии отсутствия любых ошибок.
 
-EKT-002: new payment text is rejected at persistence, extraction and provider boundaries; old messages/context and old proposal text are masked on read. Independent review found whitespace/CVV and legacy-proposal gaps; regressions reproduced them before correction. Five privacy tests pass with a network spy (zero paid calls). Counts-only dry-run on existing `.data/ekt.sqlite`: 3 messages, 0 matches, no writes. Targeted cleanup demonstrated on a separate synthetic DB; physical WAL/backup erasure and raw image screening are not claimed.
+Среда: Windows/PowerShell, Node 24.18.0, npm 12.0.1, Next.js 16.3.6, установленный Chrome/Playwright. Основные проверки: явно маркированный `fixture`, SQLite `prototype`, отдельные тестовые сессии/БД, отключённая внешняя модель. Отдельно выполнены один read-only HTTP-запрос EKT и два разрешённых текстовых вызова gpt-4.1-mini. Пользовательская БД не изменялась тестами; её проверка реквизитов была read-only.
 
-EKT-001/014: server proposal now carries the initial cart revision and full before/after/delta/repricing plan. Confirm uses the same planner and an atomic revision check; legacy proposals cannot use the old contract. Checked arithmetic rejects unsafe totals before Number conversion. The original financial example, decreasing/unchanged prices and overflow regressions pass; browser verification remains pending.
+Коммиты исправлений:
 
-Current checks: typecheck/lint passed; existing and new unit/integration tests 45 passed, 0 failed. No dependencies changed. Remaining units/file/UI fixes and final production/E2E verification are in progress; no final closure is claimed yet.
+- **A — `751c2e9`**: защита платёжного текста, полный финансовый план, точная арифметика.
+- **B — `48c2647`**: исходные единицы, файлы, исключения, корзина, интерфейс, CSRF.
+- **C — `3e51ba2`**: deadline/cache каталога, восстановление неопределённого результата, начальная сессия.
+- **D — `9762068`**: закрытие регрессий review, детализация переоценки, итоговые тесты и доказательства.
 
-## Checkpoint 3 — limited live measurements and independent review
+## Матрица проверок и результаты по EKT-ID
 
-EKT-017 is mitigated: shared Catalog-operation deadline, bounded retry, cache and detail coalescing now have deterministic regression coverage. One real list HTTP attempt: cold 217 ms; same-instance warm confirmed cache hit below 1 ms resolution with zero HTTP. This separate diagnostic process is not an application warmup or a latency SLA. Multi-row routes and live detail remain unmeasured.
+### EKT-001 — fixed_verified
 
-Independent Standards review found requested-line retention; Spec review found duplicated source IDs, stale unit acknowledgments and chat selection after a saved file. These remediation regressions are being corrected before the candidate is frozen. Expanded six-scenario browser suite passed (lost-response recovery, timeout, offline, exclusions, conflict, fractional edits); final full regression and production-start smoke are next.
+Причина: предложение показывало цену добавляемой части, хотя сохранение также переоценивало прежнее количество. В `src/server/cart.ts:planCart/prepare/confirm`, `src/shared/types.ts:CartPlan` и `src/components/assistant.tsx:ProposalPanel` введён единый план: ревизия, прежняя/новая сумма, фактическая разница, переоценка по SKU с прежним количеством и обеими ценами. Commit сохраняет ровно этот план короткой транзакцией после сетевой проверки.
 
-## Checkpoint 2 — units, files and interface
+Проверено: исходный пример 390000 → 630000, прирост 240000, из него переоценка 30000; снижение/неизменность цены; изменение между preview/confirm; две SQLite-связи; старые предложения; недостаточный суммарный остаток; повторы и потерянный ответ. `tests/cart-repair.test.ts`, `cart.test.ts`, `cart-invariants.test.ts`, браузерные `golden-path`/`remediation` — прошли. Режим: fixture и управляемый каталог. Внешний склад не резервируется. Коммиты A, D.
 
-Server-held requested lines retain original quantities/units, explicit exclusions and quantity-specific unit reviews. Text extraction has deterministic protection when the model drops an explicit packaging unit. Direct proposals cannot bypass unresolved saved rows. File regressions preserve numeric SKU, XLSX zero formats, Word paragraph/run boundaries and unknown units (28 attachment checks passed).
+### EKT-002 — partially_fixed
 
-Browser red/green checks cover exact fractional cart editing, stale proposal rejection, Russian offline recovery, server-backed widget counters, modal keyboard/iframe handling and non-overlapping mobile composer. Six main browser scenarios passed after an asynchronous checkbox integration correction; seven widget/layout regressions passed separately. Targeted HTTP/source/model/file suite: 16 passed; typecheck passed. Lint has no errors and one hook cleanup warning pending final review. Catalog latency work and the expanded final regression remain in progress.
+Причина: платёжный текст мог сохраняться и попадать в контекст модели. `src/server/privacy.ts`, `cart.ts`, `model.ts`, `attachments.ts`, `privacy-maintenance.ts` теперь блокируют распознанные реквизиты до записи/текстового provider-вызова; маскируют старые сообщения, контекст и текст предложений. Контролируемые ошибки не возвращают исходный текст. Исправлена найденная в E2E ложная реакция на цифровые фрагменты UUID.
+
+Проверено: синтетические PAN/CVV, пробелы/переносы, HTTP 422, отсутствие новых записей/утечки в state и provider spy, сохранность обычных SKU, чтение старых записей и повторяемая целевая очистка. `tests/privacy.test.ts` — 6/6; соответствующие HTTP/attachment-тесты прошли. Коммиты A, D.
+
+Существующая `.data/ekt.sqlite`: dry-run, **3 сообщения, 0 совпадений, 0 изменений**. Очистка `--apply` проверена только на отдельной синтетической БД; реальные записи не переписывались. Это эвристический фильтр, не универсальная DLP. Изображение/скан до внешнего OCR не проверяется по содержимому; распознанный текст проверяется после ответа. Старые предложения маскируются при чтении, физическая очистка WAL, резервных копий и внешних журналов не доказана. Для полного закрытия нужны отдельные решения по этим границам.
+
+### EKT-003 — fixed_verified
+
+Причина: intent терял упаковочную единицу. `src/server/model.ts:interpretRequest`, `src/shared/units.ts`, серверные requested lines, proposal и UI сохраняют quantity/unit/evidence и исходный фрагмент. Детерминированная проверка восстанавливает явное обозначение, если модель его пропустила. Сервер связывает согласование с количеством, товаром и единицей; поддельный boolean и повторный lineId не обходят сохранённый источник.
+
+`tests/model-units.test.ts`, `requested-lines.test.ts`, `cart-source-repair.test.ts` и браузерный сброс согласования прошли. Два live-вызова подтвердили «2 упаковки» и контекстное «5 метров». Пересчёт упаковок не угадывается. Коммиты B, D.
+
+### EKT-004 — fixed_verified
+
+Причина: неизвестная единица исчезала при извлечении. `src/server/attachments.ts` и общий контракт строки сохраняют rawUnit/rawQuantity/sourceText, включая «бухта»; UI требует адресного согласования. Неизвестная единица самого каталога блокирует подтверждение.
+
+CSV/текст, фиксированный vision-ответ, обычные шт/м, дробные метры и отсутствие единицы проверены в `attachments-repair`, `requested-lines`, `cart-source-repair`. Реальный новый vision-вызов не выполнялся. Режим: синтетические файлы/provider stub. Коммиты B, D.
+
+### EKT-005 — fixed_verified
+
+Причина: первый числовой столбец CSV принимался за номер строки. `attachments.ts` сохраняет строковый артикул `000123` в схеме без заголовка; нумерация определяется заголовками или явным маркером. Неоднозначная четырёхколоночная схема требует уточнения.
+
+Регрессии `attachments-repair.test.ts`: `000123;2;шт`, смешанные SKU, заголовки, настоящая нумерация и десятичная запятая — прошли. Синтетические файлы, без модели. Коммит B.
+
+### EKT-006 — fixed_verified
+
+Причина: XLSX-идентификатор терял отображаемые нули. `attachments.ts` использует фактический `ExcelJS cell.numFmt`: числовое 123 с `000000` становится `000123`; количества остаются числами. Неподдерживаемый сложный формат даёт уточнение вместо догадки.
+
+Текстовый/числовой SKU, zero-format, обычный формат и дробное количество проверены в `attachments-repair.test.ts`. Старые проверки формул и опасных архивов сохранены. Коммит B.
+
+### EKT-007 — fixed_verified
+
+Причина: Word-абзацы склеивались, а runs могли разрывать артикул. `attachments.ts:xmlText` отделяет абзацы, объединяет runs без лишних пробелов, учитывает tabs/breaks.
+
+Синтетические DOCX с соседними абзацами, разделённым на runs артикулом и таблицей прошли `attachments-repair.test.ts`; прежние XML/архивные ограничения сохранены. Коммит B.
+
+### EKT-008 — fixed_verified
+
+Причина: rematch повторно выбирал исключённую позицию. `requested-lines.ts`, `cart.ts`, API `/lines`/`match` и `assistant.tsx` сохраняют серверное состояние auto/manual/excluded и исходные строки. Выбор карточки после файла сохраняет предыдущие выбранные позиции, не возвращая исключённые.
+
+`requested-lines.test.ts`, `http-repair.test.ts` и новый браузерный CSV: три позиции, разрешённый аналог, 3.75 → 0.75 м, исключение, rematch, reload, подтверждение и повторный reload — прошли. Исключённой позиции в корзине нет. Коммиты B, D.
+
+### EKT-009 — fixed_verified
+
+Причина: редактирование дробного количества не давало корректно сохранить значение. `cart-page.tsx:QuantityEditor` использует локальный десятичный ввод и явную кнопку сохранения; сервер проверяет точность, остаток, минимум и кратность.
+
+Браузером проверено 0.5 → 0,25 → 0.75 м и reload. Для исходной упаковки новое количество требует нового согласования; ввод, смена единицы или ревизии сбрасывают галочку. Проверены stale revision/409 и повторное согласование. Режим fixture. Коммиты B, D.
+
+### EKT-010 — fixed_verified
+
+Причина: UI сохранял возможность повторного подтверждения устаревшего предложения после 409. `use-app-state.ts` немедленно инвалидирует локальный preview и читает серверное состояние; при неудачном обновлении подтверждение блокируется.
+
+Браузерный `EKT-010 conflict synchronizes…` и серверные тесты цены/остатка/версии прошли. Отменённое или заменённое согласие не изменяет корзину. Коммиты B, C.
+
+### EKT-011 — fixed_verified
+
+Причина: счётчики parent/iframe расходились и старт мог создать разные сессии. `embed-demo.tsx`, `embed-events.ts`, `ui.tsx`, `use-app-state.ts` используют серверный счётчик, начальную сессию до открытия iframe и объединение параллельного GET. Сообщение принимается только от ожидаемого окна, точного origin и разрешённой формы; переданному извне счётчику не доверяют.
+
+Три browser-регрессии проверили reload, добавление/удаление, неверные origin/source/payload. Отдельная Chrome-проба свежей сессии с задержанным GET: 1 запрос, 1 cookie. Доказана только same-origin интеграция. Коммиты B, C.
+
+### EKT-012 — fixed_verified
+
+Причина: клавиатурный фокус выходил за мобильный виджет. `embed-demo.tsx` использует модальный dialog; bridge поддерживает границы Tab/Shift+Tab, Escape из iframe и возврат фокуса на launcher.
+
+`widget-repair.spec.ts`: реальные клавиатурные действия на 360 и 1440 px прошли. Скриншоты просмотрены. Произвольный cross-origin CMS/вспомогательные технологии не проверялись. Коммит B.
+
+### EKT-013 — fixed_verified
+
+Причина: composer перекрывал поля/действия спецификации. `globals.css` задаёт ограниченную сетку и отдельную прокрутку содержимого; composer занимает собственную строку.
+
+Браузер проверил Tab, видимость и hit-testing полей/кнопок при обычном и увеличенном многострочном composer на 360/390 px. Общая раскладка проверена на 1440/1280/390/360; скриншоты просмотрены. Коммит B.
+
+### EKT-014 — fixed_verified
+
+Причина: денежный результат мог потерять точность Number. `src/server/money.ts` использует точные промежуточные BigInt и проверяет безопасную границу до преобразования; дробное количество ограничено тремя знаками, округление денежной доли едино.
+
+`cart-repair.test.ts`: MAX_SAFE_INTEGER × 3 и переполнение суммы отвергаются; допустимая граница и дробные метры сохраняются точно, включая повторное чтение SQLite. Ошибка не меняет корзину. Коммиты A, D.
+
+### EKT-015 — fixed_verified
+
+Причина: Unicode CSRF создавал несовпадающие длины Buffer и серверную ошибку. `src/server/http.ts:authorize` проверяет формат hex и байтовые длины перед timingSafeEqual.
+
+`http-repair.test.ts`: Unicode, пустой, слишком длинный и неверный ASCII токены дают 403; корректный токен разрешает предложение. Browser-тест чужого origin/сессии также прошёл. Коммит B.
+
+### EKT-016 — fixed_verified
+
+Причина: сетевой сбой не давал понятного восстановления и оставлял неопределённый результат confirm. `use-app-state.ts` различает offline/timeout, сохраняет черновик в текущем окне и сверяет серверное состояние после потерянного ответа без автоматического повторного POST.
+
+Browser-регрессии: offline/recovery, timeout до записи, серверный commit с потерянным ответом — прошли. Проверены тот же proposal ID и отсутствие дубликата. Сохранение несохранённого текстового черновика после полного закрытия окна не обещается. Коммиты B, C, D.
+
+### EKT-017 — mitigated
+
+Причина исходной нестабильной live-задержки полностью не установлена. `catalog.ts` добавляет общий deadline отдельной операции, ограниченный retry, объединение list/detail-запросов, восстановление после ошибки и безопасные счётчики. Метаданные кешируются 120 секунд; fresh-проверка перед подтверждением не использует старый остаток при недоступном источнике.
+
+8 новых и 3 существующих catalog-теста прошли: deadline страниц/detail/retry, конкурентные читатели, cache hit, истечение, refresh failure, зависший transport и отказ confirm при offline. Коммит C.
+
+Live-серия: **1 HTTP-попытка из разрешённых 8**; cold одной страницы 217 мс, из них fetch 201.036, read 3.552, normalize 11 мс. Warm того же экземпляра: подтверждённый cache hit, 0 HTTP, длительность ниже разрешения часов 1 мс. Это отдельный диагностический процесс, не прогрев обслуживающего приложения. Live detail, полный поиск, многострочный маршрут и p95 не измерены. Deadline ограничивает Catalog-вызов, не сумму всех вызовов маршрута. Следующий шаг — измерения в целевом процессе с отдельно утверждённым лимитом.
+
+### EKT-018 — blocked_external
+
+В наблюдаемом API не подтверждены единицы, семантика KRATNOST_MIN и схема сертификатов; встречается конфликт 160/250 А. `catalog.ts` сохраняет происхождение и предупреждение, блокирует автоматический аналог при конфликте; неизвестная единица не назначается. Fixture-аналоги остаются рабочими и маркированными.
+
+Catalog-регрессии и fixture E2E прошли; положительный live-сертификат и безопасный live-аналог по полным характеристикам не доказаны. В `docs/api-contract.md` добавлены вопросы партнёру: единицы, кратность, авторитетные характеристики, валюта/цены, склады, схема сертификата и положительный образец. Отсутствие поля в выборке не означает отсутствия сертификатов во всём каталоге. Документация D; нужна спецификация/пример от партнёра.
+
+### EKT-019 — blocked_external
+
+Нативный API корзины и тестовая среда не предоставлены. SQLite-прототип через `CartAdapter` сохраняет владение сессией, подтверждение, ревизию и идемпотентность; путь до `/cart` и reload прошёл unit/E2E.
+
+`docs/api-contract.md` описывает необходимые операции, авторизацию, SKU/offer, повторяемость, origin/cookies и CMS. Endpoint checkout не придумывался. Same-origin iframe не доказывает интеграцию с ekt.kz. Документация D; следующий шаг — согласованный sandbox-контракт партнёра.
+
+### EKT-020 — blocked_external
+
+`package.json` фактически запускает `next start --hostname 127.0.0.1`. Production build прошёл. Ровно одна обычная попытка `npm.cmd run start -- --port 3003` с fixture, отдельной БД и пустыми ключом/моделью отклонена автоматической проверкой разрешений: **blocked by policy**. Процесс не стартовал; production HTTP, браузерный путь и reload не проверены. Обхода другой оболочкой/обёрткой не было. Это не доказанный дефект приложения.
+
+Владелец может выполнить из корня проекта в PowerShell:
+
+```powershell
+$nodeDir = Join-Path $env:APPDATA 'fnm\node-versions\v24.18.0\installation'
+$env:Path = "$nodeDir;$env:Path"
+$env:CATALOG_MODE = 'fixture'
+$env:OPENAI_API_KEY = ''
+$env:OPENAI_MODEL = ''
+$env:DATABASE_PATH = '.tmp/repair-production.sqlite'
+$env:APP_ORIGIN = 'http://127.0.0.1:3003'
+$env:NEXT_DIST_DIR = '.tmp/repair-production-next'
+npm.cmd run build
+npm.cmd run start -- --port 3003
+```
+
+Затем открыть `http://127.0.0.1:3003/`, загрузить тестовую спецификацию, подтвердить состав, открыть корзину и обновить страницу. После проверки остановить этот процесс Ctrl+C. Команда не переписывает `.env.local`.
+
+## Фактическая приёмка
+
+| Проверка | Результат |
+| --- | --- |
+| `npm.cmd run typecheck` | Пройдено |
+| `npm.cmd run lint` | Пройдено, без предупреждений |
+| `npm.cmd test` | 86 passed, 0 failed, 0 skipped |
+| `npm.cmd run test:e2e` | 24 passed, 0 failed; Chrome, fixture, порт 3001 |
+| `npm.cmd run build` | Пройдено, изолированный distDir |
+| Production start | 1 попытка; blocked by policy |
+| После фиксации кандидата | 15 критических тестов passed; diff продукта пуст |
+| Секреты | staged-проверка пройдена; проверены 102 tracked-пути, 0 совпадений с известными секретами/ключами |
+
+Штатный E2E сохраняет прежние 9 сценариев. Дополнительно проверены новая спецификация, отрицание «не добавляй», injection документа, старое согласие, две сессии, повтор confirm, изменённые цена/остаток, дробное редактирование, offline/timeout, widget/focus. Файловые тесты сохранили ограничения MIME, размера, архивов, макросов, формул и XML entities. Промежуточный полный E2E имел 23 passed/1 failed из-за UUID/PAN; дефект воспроизведён и исправлен до кандидата, затем полный набор прошёл повторно. Неуспешный прогон не выдан за успешный.
+
+Снимки и безопасные измерения: `docs/repair-evidence/`. `verification.json` содержит команды/счётчики; `catalog-live.json` и `model-live.json` — обезличенные результаты. SQLite/WAL, ключи, частные документы и сырые provider traces не опубликованы.
+
+## Независимый review и заключительная проверка
+
+**Standards:** обнаружена неочищаемая таблица requested_lines. До кандидата добавлена очистка истёкших записей и сирот с регрессией. Необязательное замечание о дублировании части quantity-валидации оставлено без рефакторинга.
+
+**Spec:** обнаружены повтор source ID, перенос старого согласования единиц и нарушение выбора карточки после файла. При повторной проверке найдены потеря предыдущих выбранных позиций и сохранение галочки при обновлении единицы/ревизии. Все эти регрессии исправлены до кандидата и покрыты тестами. Reviewer повторно прочитал текущие файлы и подтвердил закрытие. Последующие изменения каталога/сессии также проверены отдельно.
+
+Применялись прочитанные реальные инструкции diagnosing-bugs, tdd, implement, code-review, playwright-cli и orchestrating-hackathon-products; UI-проверка 21st дала 0 ошибок, 0 предупреждений и 5 информационных замечаний о цветах. Наличие инструмента не выдавалось за успешную проверку.
+
+Кандидат зафиксирован и отправлен в 11:03:00 UTC / 16:03:00 UTC+5. После перехода в режим без изменений повторно прошли 15 тестов money/cart/privacy/HTTP, проверены исходный аудит и отсутствие diff исходников. **Новых подтверждённых находок EKT-021+ нет.** Код, тесты, зависимости и конфигурация после фиксации не исправлялись; последующие изменения — только отчёт и безопасные доказательства.
+
+## Внешние вызовы и стоимость
+
+Пользователь отдельно разрешил два текстовых вызова gpt-4.1-mini, общий предел $0.02, без повторов. Выполнено **2/2**, оба HTTP 200; 602 input tokens + 58 output tokens. Оценка по $0.40/млн input и $1.60/млн output: **$0.0003336**. Ограничитель запрещал третий вызов, изображения, tools и превышение размера/выходных токенов; консервативная верхняя оценка $0.01856. Предыдущий расход аккаунта неизвестен и сюда не включён.
+
+Результаты: «2 упаковки» → количество 2, единица «упаковки», точное evidence; «Второй вариант, 5 метров» → DEMO-CABLE, количество 5, единица «метров». Длительности 2347 и 1680 мс — отдельные наблюдения. Источник цены: [тариф gpt-4.1-mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini). Каталог EKT: 1 read-only HTTP-попытка; остальные внешние проверки использовали заглушки.
+
+## Что не проверено и почему
+
+- Production-start HTTP/браузер: блокировка среды, не заменяется успешной сборкой.
+- Нативная корзина, реальные пользователи ekt.kz и cross-origin CMS: нет согласованного API/sandbox; реальные заказы запрещены.
+- Полный каталог, положительный сертификат и надёжный live-аналог: неполные данные/контракты; ограниченный бюджет запросов.
+- SLA, p95, нагрузка, многопроцессный кеш и суммарный deadline большого многострочного запроса: ограниченная проба этого не доказывает.
+- Новый реальный vision/OCR: дополнительные платные вызовы не разрешались; проверен фиксированный ответ и парсеры. Все произвольные изображения, OCR-языки и виды секретов не охвачены.
+- Физическое стирание исторических реквизитов, WAL/backup/provider-журналы: не выполнялось; пользовательская БД проверена только dry-run.
+- Полная проверка screen reader, всех браузеров и устройств не выполнялась; проверен Chrome и указанные размеры.
+
+## Демонстрация и остановка
+
+Проверенная демонстрационная конфигурация: fixture-каталог, явно показанные тестовые цены/остатки, SQLite prototype, локальный same-origin UI. Рабочий путь: файл → сопоставление → явный выбор аналога/исключение → согласование единиц → полный preview → кнопка подтверждения → сохранённая корзина и reload. AI для двух текстовых сценариев проверен отдельно; отключённый AI не выдаётся за работающую модель.
+
+Для live-подключения остаются EKT-018/019; для production runtime — EKT-020. EKT-002 сохраняет описанные ограничения приватности, EKT-017 — неопределённость реальной производительности. Полное production-внедрение и гарантированное отсутствие ошибок не заявляются.
+
+Собственные тестовые серверы остановлены; production-процесс не запускался. Пользовательский сервер 3000 оставлен. После финального проверенного push локальный напоминатель остановлен. Работа по исправлениям прекращена; дальнейшие изменения — после решения владельца.

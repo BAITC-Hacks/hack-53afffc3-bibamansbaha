@@ -54,3 +54,11 @@ Git checkpoints target 15 minutes between successful pushes, with preparation at
 - All 38 tests pass, final lint and production build pass; the nine-browser-test suite passed after unit-review changes. Live source and model smoke evidence remains dated separately.
 - Final handoff documents distinguish live catalog/model checks, fixture analogues and the prototype cart. Native integration, verified certificate data, sufficient live analogue attributes and deployment remain explicit external gaps.
 - Local push reminder is stopped at handoff. The application can continue running locally; further commits/pushes require an active development session, not an unattended timer.
+
+## Scoped remediation — 2026-09-23
+
+- Product candidate: `9762068e6146d419938be37b52af154144e55260`; confirmed on remote main at 11:03:00 UTC. Original FINAL_AUDIT.md preserved byte-for-byte under Git normalization.
+- Final regression: 86 unit/integration and 24 Chrome E2E passed; typecheck, lint and production build passed. An intermediate UUID/privacy regression was reproduced and corrected before the candidate; failed runs are recorded in REPAIR_REPORT.md.
+- After freeze: 15 critical checks passed; no product edits or new confirmed findings. Independent review's confirmed regressions were closed before freeze.
+- Two authorized gpt-4.1-mini calls used 602 input + 58 output tokens, estimated $0.0003336. One real EKT list HTTP attempt measured cold 217 ms and same-instance warm cache below 1 ms clock resolution; not an SLA or demo-process warmup.
+- Production start attempt was rejected `blocked by policy`; no workaround attempted. Native cart/data contracts and privacy/performance boundaries remain explicit in docs/REPAIR_REPORT.md, whose full text is delivered at handoff.
