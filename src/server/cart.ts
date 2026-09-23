@@ -6,10 +6,11 @@ import { z } from 'zod';
 import type { Cart, Message, Product, Proposal, ProposalLine } from '../shared/types';
 import type { CatalogAdapter } from './catalog';
 import { AppError } from './errors';
+import { needsUnitReview } from '../shared/units';
 
 type Session={id:string;csrf:string;createdAt:string};
-type Selection={productId:string;quantity:number};
-const selectionSchema=z.array(z.object({productId:z.string().min(1).max(80),quantity:z.number().positive().max(1_000_000)}).strict()).min(1).max(100);
+type Selection={productId:string;quantity:number;requestedUnit?:string|null;unitConfirmed?:boolean};
+const selectionSchema=z.array(z.object({productId:z.string().min(1).max(80),quantity:z.number().positive().max(1_000_000),requestedUnit:z.string().max(30).nullable().optional(),unitConfirmed:z.boolean().optional()}).strict()).min(1).max(100);
 const emptyCart=():Cart=>({lines:[],totalMinor:0,updatedAt:new Date().toISOString(),mode:'prototype'});
 const fingerprint=(p:Product)=>JSON.stringify([p.id,p.sku,p.supplierSku,p.name,p.category,p.priceMinor,p.currency,p.stock,p.unit,p.minQuantity,p.packSize,p.attributes,p.warnings]);
 export function lineTotal(priceMinor:number,quantity:number){return Number((BigInt(priceMinor)*BigInt(Math.round(quantity*1000))+500n)/1000n);}
@@ -47,7 +48,7 @@ export class CartService implements CartAdapter {
  async prepare(s:string,input:Selection[],excluded:string[]=[],expectedPreviousId?:string):Promise<Proposal>{
   this.own(s);const selections=selectionSchema.parse(input);const quantities=new Map<string,number>();for(const x of selections)quantities.set(x.productId,(quantities.get(x.productId)??0)+x.quantity);
   const cart=this.getCart(s);const lines:ProposalLine[]=[];
-  for(const [id,quantity] of quantities){const p=await this.catalog.get(id,true);validateQuantity(p,quantity);validateQuantity(p,quantity+(cart.lines.find(l=>l.product.id===id)?.quantity??0));lines.push({product:p,quantity,lineTotalMinor:lineTotal(p.priceMinor!,quantity)});}
+  for(const [id,quantity] of quantities){const p=await this.catalog.get(id,true);const sourceLines=selections.filter(x=>x.productId===id);for(const line of sourceLines)if(needsUnitReview(line.requestedUnit,p.unit)&&line.unitConfirmed!==true)throw new AppError('UNIT_REVIEW','Проверьте несовпадение единиц и количество в единицах каталога. Автоматический пересчёт упаковок не выполняется.');validateQuantity(p,quantity);validateQuantity(p,quantity+(cart.lines.find(l=>l.product.id===id)?.quantity??0));const requestedUnit=[...new Set(sourceLines.map(x=>x.requestedUnit?.trim()).filter(Boolean))].join(' / ');lines.push({product:p,quantity,lineTotalMinor:lineTotal(p.priceMinor!,quantity),...(requestedUnit?{requestedUnit,unitConfirmed:sourceLines.every(x=>!needsUnitReview(x.requestedUnit,p.unit)||x.unitConfirmed===true)}:{})});}
   const createdAt=new Date().toISOString();const p:Proposal={id:randomUUID(),version:1,hash:'',status:'awaiting_confirmation',lines,totalMinor:lines.reduce((s,l)=>s+l.lineTotalMinor,0),createdAt,expiresAt:new Date(Date.now()+10*60_000).toISOString(),excluded:excluded.slice(0,100).map(x=>x.slice(0,400))};p.hash=createHash('sha256').update(JSON.stringify([s,p.id,p.version,p.lines,p.expiresAt])).digest('hex');
   return this.transaction(()=>{const old=this.currentProposal(s);if(expectedPreviousId&&old?.id!==expectedPreviousId)throw new AppError('STATE','Уже подготовлено новое предложение. Проверьте его.',409);if(old&&old.status==='awaiting_confirmation'){old.status='invalidated';this.saveProposal(s,old);}this.saveProposal(s,p);return p;});
  }

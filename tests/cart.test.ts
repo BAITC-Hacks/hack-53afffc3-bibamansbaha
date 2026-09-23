@@ -2,6 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CartService } from '../src/server/cart';
 import { Catalog } from '../src/server/catalog';
+import { unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 test('a proposal leaves cart empty; explicit confirmation persists exactly once',async()=>{
  const service=new CartService(':memory:',new Catalog('fixture'));
@@ -63,4 +67,40 @@ test('quantity change cannot silently approve a newly increased unit price',asyn
  const c=new Catalog('fixture');const get=c.get.bind(c);let changed=false;c.get=async(id:string)=>{const p=await get(id);if(changed)p.priceMinor=999900;return p;};
  const s=new CartService(':memory:',c);const a=s.createSession();const p=await s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:2}]);await s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true});changed=true;
  await assert.rejects(()=>s.updateCart(a.id,'DEMO-C16-IN',1),/изменились/);assert.equal(s.getCart(a.id).totalMinor,390000);s.close();
+});
+
+test('expired and cancelled proposals never change the cart',async(t)=>{
+ t.mock.timers.enable({apis:['Date'],now:Date.now()});
+ const s=new CartService(':memory:',new Catalog('fixture'));const a=s.createSession();
+ const p=await s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:1}]);
+ t.mock.timers.tick(10*60_000+1);
+ await assert.rejects(()=>s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true}),/истёк/);
+ assert.equal(s.getCart(a.id).lines.length,0);
+ const next=await s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:2}]);s.cancel(a.id,next.id);
+ await assert.rejects(()=>s.confirm(a.id,{proposalId:next.id,hash:next.hash,version:1,confirmed:true}),/не действует/);
+ assert.equal(s.getCart(a.id).lines.length,0);s.close();
+});
+
+test('confirmed cart and session survive closing and reopening the database',async()=>{
+ const path=join(tmpdir(),`ekt-cart-test-${randomUUID()}.sqlite`);
+ let s=new CartService(path,new Catalog('fixture'));
+ try {
+  const a=s.createSession();const p=await s.prepare(a.id,[{productId:'DEMO-CABLE',quantity:2.5}]);
+  await s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true});s.close();
+  s=new CartService(path,new Catalog('fixture'));
+  assert.equal(s.getSession(a.id)?.csrf,a.csrf);assert.equal(s.getCart(a.id).totalMinor,112500);
+  const replay=await s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true});
+  assert.equal(replay.cart.lines[0].quantity,2.5);
+ } finally {s.close();unlinkSync(path);}
+});
+
+test('source units cannot silently become catalog units',async()=>{
+ const catalog=new Catalog('fixture');const s=new CartService(':memory:',catalog);const a=s.createSession();
+ await assert.rejects(()=>s.prepare(a.id,[{productId:'DEMO-CABLE',quantity:2,requestedUnit:'упак'}]),/единиц/);
+ const p=await s.prepare(a.id,[{productId:'DEMO-CABLE',quantity:20,requestedUnit:'упак',unitConfirmed:true}]);
+ assert.equal(p.lines[0].requestedUnit,'упак');assert.equal(p.lines[0].quantity,20);
+ const equal=await s.prepare(a.id,[{productId:'DEMO-CABLE',quantity:2,requestedUnit:'m'}]);assert.equal(equal.totalMinor,90000);
+ const get=catalog.get.bind(catalog);catalog.get=async(id:string)=>({...await get(id),unit:null});
+ await assert.rejects(()=>s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:2,requestedUnit:'шт'}]),/единиц/);
+ assert.equal(s.getCart(a.id).lines.length,0);s.close();
 });

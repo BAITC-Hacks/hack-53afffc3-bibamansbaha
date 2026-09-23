@@ -47,3 +47,18 @@ test('same-origin widget opens the same functional chat',async({page})=>{
  await page.goto('/embed');await page.getByRole('button',{name:/Открыть.*ассистент|Открыть.*чат|Помощник|Подобрать|Спросить|Открыть виджет/i}).last().click();
  await expect(page.frameLocator('iframe').getByLabel('Запрос ассистенту')).toBeEnabled();
 });
+
+test('file unit mismatch blocks proposal until reviewed, and edits reset review',async({page})=>{
+ await page.goto('/');await expect(page.getByLabel('Запрос ассистенту')).toBeEnabled();
+ await page.locator('input[type=file]').setInputFiles({name:'units.csv',mimeType:'text/csv',buffer:Buffer.from('Артикул;Количество;Единица\nDEMO-CABLE;2;упак')});
+ await page.getByRole('button',{name:'Распознать файл'}).click();
+ const prepare=page.getByRole('button',{name:/Подготовить предложение/});
+ const review=page.getByRole('checkbox',{name:/Проверил единицы/});
+ await expect(review).toBeVisible();await expect(prepare).toBeDisabled();
+ await review.check();await expect(prepare).toBeEnabled();
+ await page.getByLabel('Количество (м)',{exact:true}).fill('20');
+ await expect(review).not.toBeChecked();await expect(prepare).toBeDisabled();
+ await review.check();await prepare.click();
+ await expect(page.getByRole('button',{name:'Подтверждаю состав и сумму'})).toBeEnabled();
+ const state=await(await page.request.get('/api/state')).json();expect(state.proposal.lines[0].requestedUnit).toBe('упак');expect(state.proposal.lines[0].quantity).toBe(20);expect(state.cart.lines).toHaveLength(0);
+});

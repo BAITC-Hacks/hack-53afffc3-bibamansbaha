@@ -26,6 +26,8 @@ zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xm
 zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Спецификация</w:t></w:r></w:p><w:tbl>${wordRows}</w:tbl><w:sectPr/></w:body></w:document>`);
 await fs.writeFile(path.join(directory, 'sample-specification.docx'), await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }));
 await fs.writeFile(path.join(directory, 'sample-specification.txt'), rows.map((row) => row.join(';')).join('\n') + '\n', 'utf8');
+await fs.writeFile(path.join(directory, 'fixture-specification.csv'), 'Артикул;Количество;Единица\nDEMO-C16-OUT;2;шт\nDEMO-CABLE;2.5;м\n', 'utf8');
+await fs.writeFile(path.join(directory, 'fixture-unit-review.csv'), 'Артикул;Количество;Единица\nDEMO-CABLE;2;упак\n', 'utf8');
 
 // A real PDF text layer, kept ASCII so the example does not depend on external fonts.
 const content = 'BT /F1 14 Tf 50 750 Td (200300285_ - 2 pcs) Tj 0 -24 Td (Cable VVGng 3x2.5 - 25 m) Tj ET';

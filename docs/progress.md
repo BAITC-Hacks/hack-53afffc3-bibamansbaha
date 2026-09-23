@@ -35,3 +35,13 @@ Git checkpoints target 15 minutes between successful pushes, with preparation at
 - Catalog transport issue investigated: default fetch stalled, explicit HTTPS connection-close request succeeded. Adapter now uses bounded native HTTPS without following redirects.
 - Minimal dependency security updates applied; npm audit now reports zero vulnerabilities.
 - Production build and final browser follow-up are running. Native ekt.kz checkout remains unconnected.
+
+## Verification and handoff checkpoint
+
+- Unit mismatch reproduced and fixed: source units stay visible, incompatible or unknown catalog units require explicit review, and edits reset that review. Server rejects unreviewed mismatch.
+- 31 deterministic tests passed, including proposal expiry, cancellation and SQLite close/reopen persistence.
+- Nine browser tests passed in 22.7 seconds; live browser checked catalog lookup, proposal, explicit confirmation, reload, quantity edit, source-unit review and same-origin widget.
+- Typecheck, lint and optimized production build passed; dependency audit reports zero vulnerabilities.
+- Measured real catalog cold/warm search, actual model text and JPEG extraction; timings and limitations are recorded in docs/acceptance.md.
+- README, demo instructions, source/cart contract and acceptance matrix now describe reproducible operation and actual integration gaps.
+- Next: final metadata/source review, verified push and stop the local reminder when this active development session ends. Production deployment and native cart remain blocked on a supplied integration contract/target.

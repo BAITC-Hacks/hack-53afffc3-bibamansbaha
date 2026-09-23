@@ -28,7 +28,7 @@ export async function POST(request:NextRequest,context:Context){try{
  const body=await bodyJson(request);
  if(action==='cancel'){const data=z.object({proposalId:z.string().uuid()}).strict().parse(body);return reply({proposal:services.cart.cancel(s.id,data.proposalId)},s);}
  if(action==='match'){const data=z.object({lines:z.array(lineSchema).max(100)}).parse(body);return reply({lines:await matchLines(data.lines)},s);}
- if(action==='proposal'){const data=z.object({lines:z.array(z.object({productId:z.string(),quantity:z.number()}).strict()).min(1).max(100),excluded:z.array(z.string().max(400)).max(100).default([])}).strict().parse(body);const proposal=await services.cart.prepare(s.id,data.lines,data.excluded);return reply({proposal,cart:services.cart.getCart(s.id)},s);}
+ if(action==='proposal'){const data=z.object({lines:z.array(z.object({productId:z.string(),quantity:z.number(),requestedUnit:z.string().max(30).nullable().optional(),unitConfirmed:z.boolean().optional()}).strict()).min(1).max(100),excluded:z.array(z.string().max(400)).max(100).default([])}).strict().parse(body);const proposal=await services.cart.prepare(s.id,data.lines,data.excluded);return reply({proposal,cart:services.cart.getCart(s.id)},s);}
  if(action==='confirm'){const data=z.object({proposalId:z.string().uuid(),version:z.number().int().positive(),hash:z.string().length(64),confirmed:z.literal(true)}).strict().parse(body);return reply(await services.cart.confirm(s.id,data),s);}
  if(action==='cart'){const data=z.object({productId:z.string().max(80),quantity:z.number().min(0).max(1_000_000)}).strict().parse(body);return reply({cart:await services.cart.updateCart(s.id,data.productId,data.quantity)},s);}
  if(action==='chat'){

@@ -2,6 +2,24 @@
 
 Inventory checked 2026-09-23. The transfer manifest is a list of expected components, not proof of current runtime access. This inventory read the actual local `SKILL.md` metadata for every entry below. **Installed** means its file exists; it does not mean its workflow has been applied. An engineer must read the full instructions before using a deferred skill.
 
+## Final application update
+
+The dated inventory below preserves its initial stage. Subsequent complete instruction reads and actual applications:
+
+- Supplied `Downloads/SKILL.md`: orchestration, bounded parallel source/parser/UI work, build verification and demo handoff. Companion references remain unavailable.
+- `domain-modeling`, `codebase-design`, `tdd`: catalog/cart seams, glossary, test-first cart invariants and regression fixes.
+- `minimalist-ui`, `21st-ui-build`: adapted B2B interface, project design tokens, component 28500 attachment pattern. Framer Motion 13 is installed in this project's manifest and lockfile; reduced motion is honored.
+- `playwright-cli`: actual public EKT inspection, live application/cart flow, mobile and embedded-widget checks. Automated Playwright tests supplement this manual browser evidence.
+- `21st-ui-review`: full instructions read, actual six-file MCP review and browser inspection; four informational hardcoded-color findings, no blocking finding reported by that tool.
+- `code-review`: independent review against source requirements and cart invariants found five race/state issues, fixed with regressions; a final review found source-unit loss, reproduced and corrected. Successful live alternatives remain an explicit integration gap.
+- `full-output-enforcement`, `implement`: complete application files and final verification/delivery; no placeholder implementation substituted for requested behavior.
+- `diagnosing-bugs`: complete instructions read during final verification. Catalog transport was isolated experimentally using real requests; no claim that the whole earlier investigation followed the subsequently read workflow.
+- `ponytail-review`: full instructions read; final lean review retained service seams and avoided speculative frameworks.
+
+`brandkit`, `design-taste-frontend`, `gpt-taste`, and `high-end-visual-design` instructions were inspected; image boards, landing-page narratives and cinematic motion are not appropriate to the specified multistep procurement UI. They were not forced into the product. Publishing marketplace assets, external issue trackers, global hook installation and unrelated security skills were not required.
+
+Previously requested `awesome-codex-subagents` is present at `Documents/ChatGPT/awesome-codex-subagents`; the local `.codex/agents` directory contains 175 files. This confirms download/local files, not that every role is an active tool in this task. Actual work used only available bounded collaboration agents.
+
 ## Applied with recorded evidence
 
 | Skill | Instructions read | Action actually performed |
