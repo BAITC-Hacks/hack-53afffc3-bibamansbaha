@@ -24,3 +24,14 @@ Git checkpoints target 15 minutes between successful pushes, with preparation at
 - Next.js/React dependencies installed. Initial catalog adapter and SQLite cart module implemented.
 - Cart behavior test verified empty-before-confirmation and duplicate-confirmation protection; broader stock/session tests added.
 - UI, parsers and model smoke tests are in progress. Whole-app build has not yet been verified.
+
+## Working application checkpoint
+
+- Real OpenAI text, JPEG and scanned-PDF extraction verified; structured output validated before matching.
+- XLSX/DOCX/PDF/JPEG and additional text/CSV inputs flow through real parsing, editable matching and proposals.
+- Eight Playwright scenarios passed: file-to-cart, security/isolation/idempotency, injected text, four viewport widths and embedded chat.
+- Live browser showed source SKU 200300285_, quantity 2 and total 129840 KZT; explicit confirmation saved the prototype cart.
+- Independent review reproduced and fixed concurrent-confirmation and changed-price/identity races; regression tests added.
+- Catalog transport issue investigated: default fetch stalled, explicit HTTPS connection-close request succeeded. Adapter now uses bounded native HTTPS without following redirects.
+- Minimal dependency security updates applied; npm audit now reports zero vulnerabilities.
+- Production build and final browser follow-up are running. Native ekt.kz checkout remains unconnected.

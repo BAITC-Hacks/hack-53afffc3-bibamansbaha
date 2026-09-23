@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./tests/e2e',fullyParallel:false,workers:1,timeout:45000,expect:{timeout:15000},reporter:'list',use:{baseURL:'http://127.0.0.1:3001',channel:'chrome',trace:'retain-on-failure',screenshot:'only-on-failure'},webServer:{command:'npm run dev -- --port 3001',url:'http://127.0.0.1:3001',reuseExistingServer:false,timeout:90000,env:{CATALOG_MODE:'fixture',OPENAI_API_KEY:'',OPENAI_MODEL:'',DATABASE_PATH:'.tmp/e2e.sqlite',APP_ORIGIN:'http://127.0.0.1:3001',NEXT_DIST_DIR:'.next-e2e'}}});

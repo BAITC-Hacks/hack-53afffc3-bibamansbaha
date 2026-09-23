@@ -46,3 +46,21 @@ test('changed source price requires a new explicit confirmation',async()=>{
  await assert.rejects(()=>s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true}),/изменились/);
  assert.equal(s.getCart(a.id).lines.length,0);assert.equal(s.currentProposal(a.id)?.totalMinor,210000);s.close();
 });
+test('a slow conflicting confirmation cannot overwrite a completed concurrent commit',async()=>{
+ const catalog=new Catalog('fixture');const get=catalog.get.bind(catalog);
+ const s=new CartService(':memory:',catalog);const a=s.createSession();const p=await s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:1}]);
+ let release:()=>void=()=>{};const barrier=new Promise<void>(resolve=>{release=resolve;});let calls=0;
+ catalog.get=async(id:string)=>{const item=await get(id);if(++calls===1){await barrier;item.priceMinor=210000;}return item;};
+ const input={proposalId:p.id,version:1,hash:p.hash,confirmed:true};const slow=s.confirm(a.id,input);const fast=await s.confirm(a.id,input);release();const repeated=await slow;
+ assert.equal(fast.proposal.status,'committed');assert.equal(repeated.proposal.status,'committed');assert.equal(s.getProposal(a.id,p.id).status,'committed');assert.equal(s.getCart(a.id).lines[0].quantity,1);s.close();
+});
+test('technical identity change invalidates the proposal even if price stays equal',async()=>{
+ const c=new Catalog('fixture');const get=c.get.bind(c);let changed=false;c.get=async(id:string)=>{const p=await get(id);if(changed)p.name='Changed technical identity';return p;};
+ const s=new CartService(':memory:',c);const a=s.createSession();const p=await s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:1}]);changed=true;
+ await assert.rejects(()=>s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true}),/изменились/);assert.equal(s.getCart(a.id).lines.length,0);s.close();
+});
+test('quantity change cannot silently approve a newly increased unit price',async()=>{
+ const c=new Catalog('fixture');const get=c.get.bind(c);let changed=false;c.get=async(id:string)=>{const p=await get(id);if(changed)p.priceMinor=999900;return p;};
+ const s=new CartService(':memory:',c);const a=s.createSession();const p=await s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:2}]);await s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true});changed=true;
+ await assert.rejects(()=>s.updateCart(a.id,'DEMO-C16-IN',1),/изменились/);assert.equal(s.getCart(a.id).totalMinor,390000);s.close();
+});

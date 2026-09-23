@@ -11,3 +11,7 @@ test('alternatives require matching critical attributes and positive stock',asyn
  assert.deepEqual(alternatives.map(x=>x.product.id),['DEMO-C16-IN']);
  assert.deepEqual(await c.alternatives(await c.get('DEMO-NO-ALT')),[]);
 });
+test('undocumented KRATNOST_MIN does not become a guessed minimum or package size',()=>{
+ const p=normalizeProduct({id:1,article:'A',name:'Sample',price:12,quantity:30,properties:{KRATNOST_MIN:'6'}});
+ assert.equal(p.minQuantity,null);assert.equal(p.packSize,null);assert.equal(p.attributes['KRATNOST_MIN (поле источника)'],'6');
+});

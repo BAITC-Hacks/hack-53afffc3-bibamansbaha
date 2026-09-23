@@ -7,7 +7,7 @@ Verified 2026-09-23 with partner credentials from the privately downloaded Googl
 - `GET /api/products/detail?id=515291`: HTTP 200. Adds `description`, `quantity`, `stores`, `properties`. `id` is not the article. The article is `200300285_`; supplier article is `027228`.
 - Stores are `{id,name,quantity}`. The adapter uses the API aggregate quantity without summing stores or promising city fulfillment.
 - Units and currency are absent in the observed JSON. Public EKT prices are in tenge. UI discloses unknown measurement unit; only integral quantities in catalog units are accepted when unit is unknown. Fixture cable explicitly supports decimal meters.
-- `KRATNOST_MIN` is retained as the minimum quantity; package size is unknown, not guessed.
+- `KRATNOST_MIN` is retained as a raw source attribute. Its meaning (minimum vs order step) is not documented, so neither is inferred. Values above 1 block adding until clarified.
 - Observed inconsistency: product 515291 name says 160 A but `NOMINALNYY_TOK` says 250 A. The warning is visible; automatic alternatives are blocked for this conflict.
 - No certificate field/link was observed in the representative response. Absence is reported honestly.
 - API credentials stay server-side. Requests allow only HTTPS ekt.kz, reject redirects, timeout after 8 seconds and retry at most once. Search loads at most configured 1–5 pages (default 2), with explicit partial coverage.
@@ -18,7 +18,7 @@ No cart API is provided. A persistent SQLite prototype cart is isolated by HttpO
 
 ## Runtime model
 
-OpenAI Responses provider configured locally; text and image verification is in progress. Model authentication is separate from Codex and 21st. Unconfigured/unavailable AI must be explicitly labeled; deterministic search is not represented as AI.
+OpenAI Responses provider `gpt-4.1-mini` verified with actual requests: text interpretation 3.886 s, structured JPEG label extraction through the attachment parser 2.178 s. These are individual observations, not a latency percentile. Model authentication is separate from Codex and 21st. Unconfigured/unavailable AI is explicitly labeled; deterministic search is not represented as AI.
 
 ## Modes
 

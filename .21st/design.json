@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "project": {
+    "name": "ekt-assistant",
+    "productType": "Russian B2B electrical catalog assistant",
+    "stack": [
+      "nextjs",
+      "react"
+    ]
+  },
+  "sources": {
+    "tokens": [
+      "src/app/globals.css"
+    ],
+    "components": [
+      "src/components"
+    ],
+    "assets": [],
+    "instructions": [
+      "AGENTS.md"
+    ]
+  },
+  "design": {
+    "colorMode": "light",
+    "colors": {
+      "surface": "#ffffff",
+      "line": "#e7e9e9",
+      "canvas": "#f6f7f7",
+      "action": "#ce3836",
+      "ink": "#243039",
+      "brand": "#2c738f"
+    },
+    "typography": {
+      "body": "Golos Text, Segoe UI, sans-serif",
+      "role": "clear utilitarian hierarchy"
+    },
+    "spacing": {},
+    "radius": {},
+    "shadows": {},
+    "motion": {},
+    "density": "comfortable workspace"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": [
+      "conditional removable attachment chip",
+      "explicit proposal confirmation",
+      "source evidence disclosure"
+    ]
+  },
+  "constraints": {
+    "must": [
+      "Label fixture and snapshot data",
+      "Keep native cart integration caveat visible",
+      "Explicit server-backed confirmation",
+      "Accessible responsive layouts"
+    ],
+    "avoid": [
+      "Invented product facts",
+      "Marketing landing page structure",
+      "Decorative hero imagery",
+      "Unlabeled demo data"
+    ]
+  },
+  "decisions": [
+    "Working three-column workspace; single-column mobile",
+    "Use actual ekt.kz blue reference, red prototype action accent",
+    "Use 21st attachment composer interaction patterns without extra dependencies"
+  ],
+  "evidence": [
+    {
+      "fact": "project.instructions",
+      "source": "AGENTS.md"
+    },
+    {
+      "fact": "project.stack:nextjs",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:react",
+      "source": "package.json"
+    }
+  ],
+  "generatedAt": "2026-09-23T08:46:05.344Z"
+}

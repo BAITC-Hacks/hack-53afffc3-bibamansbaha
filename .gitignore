@@ -14,6 +14,7 @@ snapshots/
 # Dependencies, generated files and local diagnostics
 node_modules/
 .next/
+.next-e2e/
 dist/
 coverage/
 test-results/
