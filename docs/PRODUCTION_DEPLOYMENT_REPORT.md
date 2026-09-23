@@ -10,3 +10,49 @@
 На старте WSL установлен, Ubuntu отсутствует; WSL2 сообщает о недоступности виртуализации. Windows CIM показывает VirtualizationFirmwareEnabled=true: причина уточняется в компонентах Windows/гипервизоре, отключённый SVM пока не утверждается.
 
 План: устранить WSL prerequisite → Brev auth/target/cost → production Linux + persistent SQLite + HTTPS → бесплатная приёмка → ограниченная настоящая GPT-5.5/vision проверка → README и итоговая матрица. Внешний URL пока отсутствует; DEPLOYMENT COMPLETE не заявляется.
+
+## Handoff перед перезагрузкой Windows
+
+**DEPLOYMENT BLOCKED: Windows требует перезагрузку для завершения установки WSL/Ubuntu.** Это единственное действие владельца, необходимое сейчас. BIOS/SVM менять не требуется по имеющимся данным.
+
+Выполнено в текущем продолжении:
+
+- Git fetch выполнен; исходное дерево было чистым. Полезный стартовый push `ab6d1e7` проверен через remote.
+- `wsl --status`: WSL2 пока не работает, дистрибутивов нет. CIM: VirtualizationFirmwareEnabled=true, HypervisorPresent=true.
+- Через стандартный UAC выполнена проверка компонентов: VirtualMachinePlatform и Microsoft-Windows-Subsystem-Linux уже Enabled.
+- `wsl --install -d Ubuntu --no-launch` завершился с кодом 0 и сообщением «Чтобы сделанные изменения вступили в силу, следует перезагрузить систему». Перезагрузка автоматически не запускалась.
+- Официальный `brev-cli` skill установлен в пользовательский каталог Codex (7 файлов), реальные инструкции прочитаны. CLI пока не установлен: сначала требуется работающий Ubuntu.
+- OpenAI SDK установленной версии 6.49.0. Официальная документация подтверждает GPT-5.5, Responses, reasoning low, image input, structured outputs и function calling. Приложение уже использует Responses; tool loops и streaming сейчас не реализованы.
+- `GET /v1/models/gpt-5.5` с существующим ключом: HTTP 200, ID `gpt-5.5`. Генерации, vision и платных вызовов не было. Ключ и локальная runtime-модель не изменялись.
+- README переработан: безопасный quickstart Windows/Linux, демо, схема сценария, конфигурация, бюджеты, проверки, production/persistence, privacy и честные ограничения. Исправлено устаревшее обещание live-confirm в docs/demo.md.
+
+После перезагрузки продолжить без повторной разработки:
+
+1. Проверить `wsl --status` и `wsl --list --verbose`; завершить Ubuntu setup. Только если появится обязательный интерактивный шаг первого Linux user, запросить его у владельца.
+2. Установить официальный Brev CLI по https://docs.nvidia.com/brev/cli/getting-started. Skill уже доступен в `~/.codex/skills/brev-cli/` на Windows; Linux-копия при необходимости ставится через `brev agent-skill install`.
+3. Выполнить пользовательский login, refresh, списки всех организаций, instances И Brev Connect nodes. Старый JWT из чата краткоживущий; не считать его действующим. Использовать стандартный OAuth login, не просить новый токен в чат. Не удалять прежние credentials.
+4. При подтверждённом отсутствии ресурсов выбрать один CPU с ценой ≤$0.50/час и резервом Brev ≥$5; сначала проверить фактическую цену, кредит и механизм остановки. Создание разрешено, дубликаты запрещены.
+5. Минимально перенести adapter/бюджет на GPT-5.5 low. Тариф: $5/M input, $30/M output; max_output_tokens включает reasoning. Не использовать старый резерв $0.04 и старую цену gpt-4.1-mini без пересчёта. Сохранить исторический ledger, отделить одноразовый acceptance 6/$0.25 от demo runtime, защитить общий резерв ≥$10. Нужна регрессия для обоих бюджетов и ограничения числа вызовов на action.
+6. Развернуть актуальный проверенный main: npm ci/build на Linux; systemd, persistent DB/ledgers вне релиза, WAL-safe backup, HTTPS/proxy, точный APP_ORIGIN, демо-доступ для всех платных маршрутов. Не копировать локальную пользовательскую БД.
+7. Бесплатный целевой регресс, затем один набор настоящих GPT-5.5 text/context/vision в пределах 6/$0.25. Проверить cart/reload/restart, две сессии, форматы на Linux, мобильный UI. Записать реально возвращённую модель, usage/reasoning, latency и cumulative cost.
+
+## Текущая матрица передачи
+
+| Поле | Статус |
+| --- | --- |
+| Public HTTPS URL / deployed SHA | Не получены |
+| Instance name/ID, CPU/RAM/disk, цена/сутки | Пока не определены; новых ресурсов 0 |
+| Текущий статус сервера / service / restart | Не проверены |
+| Серверные пути БД / backup / restore | Ещё не настроены |
+| Brev stop/start | Будут привязаны к подтверждённому target, команды не выполнялись |
+| Production GPT-5.5 / reasoning low | Цель подтверждена пользователем; adapter ещё не мигрирован |
+| GPT-5.5 доступ по metadata | HTTP 200, без генерации |
+| Acceptance calls / spend этого этапа | 0 / $0; лимит не возобновляется |
+| Demo runtime budget | Пока не реализован отдельно; существующий ledger сохраняется |
+| Latency production / EKT-017 | Не измерены |
+| Тесты текущего кода | Исторический проверенный кандидат: 95 unit/integration, 24 E2E; в этом продолжении код приложения не изменён |
+| README / документы | Локальные ссылки и команды сверяются перед push |
+| Оставшийся текущий внешний блокер | Перезагрузка Windows |
+| Нельзя заявлять жюри | Готовую публикацию, настоящий GPT-5.5/vision smoke, native ekt cart, live-аналоги, полную DLP или настроенную автоостановку |
+
+Исторические FINAL_AUDIT, REPAIR_REPORT и DEPLOYMENT_ACCEPTANCE не переписываются. EKT-002/017/018/019/020 не закрываются. Полный server acceptance остаётся следующей частью работы после перезагрузки.
