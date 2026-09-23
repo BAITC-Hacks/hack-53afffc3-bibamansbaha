@@ -6,7 +6,7 @@ Known: official case read in RU/KZ/EN from the supplied document; five required 
 
 Working: TypeScript/Next.js app, bounded catalog adapter, persistent prototype cart, explicit proposal confirmation, session/CSRF checks, document parsers, real OpenAI text/JPEG/scanned-PDF requests and responsive same-origin widget.
 
-Evidence: 31 unit/integration tests, production build, typecheck and lint pass. Nine browser scenarios passed, including a source-unit regression. Live text/JPEG/catalog smoke passed at 09:13 UTC. See docs/acceptance.md for final results.
+Evidence: 38 unit/integration tests, production build, typecheck and lint pass. Nine browser scenarios passed, including a source-unit regression. Live text/JPEG/catalog smoke passed at 09:13 UTC. The second participant's published tests were merged without rewriting history. See docs/acceptance.md for final results.
 
 Remaining integration constraints: only a representative catalog sample is loaded; API does not confirm units, package-step semantics or certificates in the observed data. Delivery pages conflict; native cart integration and deployment require separate contracts/access. No real orders are placed.
 

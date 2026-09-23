@@ -15,6 +15,7 @@ snapshots/
 node_modules/
 .next/
 .next-e2e/
+next-env.d.ts
 dist/
 coverage/
 test-results/

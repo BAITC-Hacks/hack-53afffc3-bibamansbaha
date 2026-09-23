@@ -104,3 +104,12 @@ test('source units cannot silently become catalog units',async()=>{
  await assert.rejects(()=>s.prepare(a.id,[{productId:'DEMO-C16-IN',quantity:2,requestedUnit:'шт'}]),/единиц/);
  assert.equal(s.getCart(a.id).lines.length,0);s.close();
 });
+
+test('price refresh retains reviewed source units and never converts quantities',async()=>{
+ const catalog=new Catalog('fixture');const get=catalog.get.bind(catalog);let changed=false;
+ catalog.get=async(id:string)=>{const p=await get(id);if(changed)p.priceMinor=46000;return p;};
+ const s=new CartService(':memory:',catalog);const a=s.createSession();
+ const p=await s.prepare(a.id,[{productId:'DEMO-CABLE',quantity:20,requestedUnit:'упак',unitConfirmed:true}]);changed=true;
+ await assert.rejects(()=>s.confirm(a.id,{proposalId:p.id,hash:p.hash,version:1,confirmed:true}),/изменились/);
+ const replacement=s.currentProposal(a.id)!;assert.equal(replacement.lines[0].requestedUnit,'упак');assert.equal(replacement.lines[0].quantity,20);assert.equal(replacement.totalMinor,920000);assert.equal(s.getCart(a.id).lines.length,0);s.close();
+});

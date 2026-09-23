@@ -45,3 +45,12 @@ Git checkpoints target 15 minutes between successful pushes, with preparation at
 - Measured real catalog cold/warm search, actual model text and JPEG extraction; timings and limitations are recorded in docs/acceptance.md.
 - README, demo instructions, source/cart contract and acceptance matrix now describe reproducible operation and actual integration gaps.
 - Next: final metadata/source review, verified push and stop the local reminder when this active development session ends. Production deployment and native cart remain blocked on a supplied integration contract/target.
+
+## Final integration checkpoint
+
+- A regular push was rejected because the second participant published `1d418a5`. Fetched, inspected and merged their six cart tests and coordination notes; no conflicts or rewritten history. Merge `410a8fd` was verified on remote main at 09:21:53 UTC.
+- Source-unit evidence now survives price-refresh previews; changed catalog units require fresh unit review. Regression added.
+- Generated Next.js declarations are excluded from Git per the installed framework documentation; typecheck generates its prerequisites so dev/E2E/build do not dirty source control.
+- All 38 tests pass, final lint and production build pass; the nine-browser-test suite passed after unit-review changes. Live source and model smoke evidence remains dated separately.
+- Final handoff documents distinguish live catalog/model checks, fixture analogues and the prototype cart. Native integration, verified certificate data, sufficient live analogue attributes and deployment remain explicit external gaps.
+- Local push reminder is stopped at handoff. The application can continue running locally; further commits/pushes require an active development session, not an unattended timer.

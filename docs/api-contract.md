@@ -16,6 +16,29 @@ Verified 2026-09-23 with partner credentials from the privately downloaded Googl
 
 No cart API is provided. A persistent SQLite prototype cart is isolated by HttpOnly cookie sessions, CSRF token and origin checks. Proposals are versioned and expire; confirmation re-fetches product data. Changes require a new preview. No production orders or payments are performed. `/cart` is the current prototype session cart, not ekt.kz checkout.
 
+### Application-owned API
+
+These routes belong to this prototype, not the partner API. Every POST requires an existing session cookie, exact configured `Origin` and `x-csrf-token` obtained from GET state. Prices and stock are never accepted from the client.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /api/state` | Session-scoped conversation, cart, current proposal, catalog/model availability and CSRF token |
+| `POST /api/chat` | Text interpretation and read-only catalog consultation; may prepare, never confirm |
+| `POST /api/parse` | Multipart `file`, real extraction and candidate matching |
+| `POST /api/match` | Rematch edited specification lines |
+| `POST /api/proposal` | Product IDs/quantities, source units and unit-review acknowledgment; return server-priced preview |
+| `POST /api/confirm` | Proposal ID/version/hash and explicit `confirmed:true`; atomic idempotent cart update |
+| `POST /api/cancel` | Invalidate an unconfirmed proposal |
+| `POST /api/cart` | Explicit quantity edit/removal in own prototype cart; changed source facts require new proposal |
+
+Source-unit review is retained when a price-only refresh creates a replacement preview. Changing the catalog unit invalidates the prior unit acknowledgment. There is no inferred pack conversion.
+
+### Required native integration contract
+
+The partner must provide documented basket read/write operations, user/session ownership and authentication, SKU/offer identity, currency and measurement units, package rules, price/stock revalidation behavior, and idempotency or transactional semantics. Agree separately whether stock is merely displayed or reserved. No guessed endpoint is implemented. Connect through the `CartAdapter` boundary only after sandbox verification; real checkout is outside this prototype.
+
+The supplied iframe is same-origin and shares its session cookie. Production cross-origin embedding needs an explicit allowed origin and authentication/cookie design (including third-party-cookie restrictions), plus actual CMS integration testing. There is no wildcard postMessage bridge.
+
 ## Runtime model
 
 OpenAI Responses provider `gpt-4.1-mini` verified with actual requests: text interpretation 3.886 s, structured JPEG label extraction through the attachment parser 2.178 s. These are individual observations, not a latency percentile. Model authentication is separate from Codex and 21st. Unconfigured/unavailable AI is explicitly labeled; deterministic search is not represented as AI.

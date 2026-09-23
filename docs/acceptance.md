@@ -6,9 +6,9 @@ Statuses: `passed`, `failed`, `blocked`, `not_run`. A fixture success is not liv
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| `npm test` | passed | 31 deterministic tests: parsers, model boundaries, catalog, cart, units, expiry, restart persistence and concurrency. |
+| `npm test` | passed | 38 deterministic tests: parsers, model boundaries, catalog, cart, units, expiry, restart persistence and concurrency. Includes six additional tests merged from the second participant and a source-unit preservation regression. |
 | `npm run typecheck` / `npm run lint` | passed | Final unit-review source checks passed at 09:18 UTC. |
-| `npm run build` | passed | Optimized Next.js build with `/`, `/cart`, `/embed`, `/api/[action]` at 09:18 UTC. |
+| `npm run build` | passed | Final optimized Next.js build with `/`, `/cart`, `/embed`, `/api/[action]`, repeated after the unit-preservation fix. |
 | `npm run test:e2e` | passed | Nine browser scenarios passed in 22.7 s at 09:19 UTC, including source-unit review/reset. An initial new-test locator was incorrect and fixed; the test was rerun successfully. |
 | `npm audit` / `npm audit --omit=dev` | passed | Zero reported vulnerabilities after minimal Next/PDF dependency fixes. |
 | Real model and live catalog | passed | `node --env-file=.env.local --import tsx scripts/smoke-live.ts`, 09:13:56 UTC. Six actual read-only observations below. |
