@@ -12,6 +12,7 @@ import { lineTotal, totalMoney, quantityMillis, quantitySum } from './money';
 export { lineTotal } from './money';
 
 type Session={id:string;csrf:string;createdAt:string};
+export type SessionSnapshot = { version: 1; session: Session; cart: string | null; requestedLines: string | null; proposals: {id:string;body:string}[]; messages: {id:string;body:string;created_at:string}[] };
 type Selection={productId:string;quantity:number;requestedUnit?:string|null;unitConfirmed?:boolean;lineId?:string};
 const selectionSchema=z.array(z.object({productId:z.string().min(1).max(80),quantity:z.number().positive().max(1_000_000),requestedUnit:z.string().max(30).nullable().optional(),unitConfirmed:z.boolean().optional(),lineId:z.string().max(100).optional()}).strict()).min(1).max(100);
 const lineIdentity=(line:RequestedLine)=>JSON.stringify([line.id,line.query,line.quantity,line.rawUnit??line.unit,line.unit,line.selectedId,line.selection]);
@@ -46,6 +47,21 @@ export class CartService implements CartAdapter {
   this.db.exec('CREATE TABLE IF NOT EXISTS requested_lines(session_id TEXT PRIMARY KEY, body TEXT NOT NULL)');
  }
  close(){this.db.close();}
+ /** Request-scoped working state; production persistence is the locked Postgres row. */
+ restoreSession(snapshot:SessionSnapshot){
+  if(snapshot.version!==1||(this.db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as {n:number}).n)throw new AppError('STORAGE_STATE','Некорректное состояние хранилища.',503);
+  this.transaction(()=>{const s=snapshot.session;this.db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(s.id,s.csrf,s.createdAt);
+   if(snapshot.cart!==null)this.db.prepare('INSERT INTO carts VALUES(?,?)').run(s.id,snapshot.cart);
+   if(snapshot.requestedLines!==null)this.db.prepare('INSERT INTO requested_lines VALUES(?,?)').run(s.id,snapshot.requestedLines);
+   for(const p of snapshot.proposals)this.db.prepare('INSERT INTO proposals VALUES(?,?,?)').run(p.id,s.id,p.body);
+   for(const m of snapshot.messages)this.db.prepare('INSERT INTO messages VALUES(?,?,?,?)').run(m.id,s.id,m.body,m.created_at);
+  });
+ }
+ exportSession():SessionSnapshot|null{
+  const row=this.db.prepare('SELECT * FROM sessions LIMIT 1').get() as {id:string;csrf:string;created_at:string}|undefined;if(!row)return null;
+  const body=(table:string)=>(this.db.prepare(`SELECT body FROM ${table} WHERE session_id=?`).get(row.id) as {body:string}|undefined)?.body??null;
+  return{version:1,session:{id:row.id,csrf:row.csrf,createdAt:row.created_at},cart:body('carts'),requestedLines:body('requested_lines'),proposals:this.db.prepare('SELECT id,body FROM proposals WHERE session_id=? ORDER BY rowid').all(row.id) as SessionSnapshot['proposals'],messages:this.db.prepare('SELECT id,body,created_at FROM messages WHERE session_id=? ORDER BY rowid').all(row.id) as SessionSnapshot['messages']};
+ }
  createSession():Session {const cutoff=new Date(Date.now()-86400_000).toISOString();this.transaction(()=>{for(const table of ['messages','proposals','carts','requested_lines'])this.db.prepare(`DELETE FROM ${table} WHERE session_id IN (SELECT id FROM sessions WHERE created_at < ?)`).run(cutoff);this.db.prepare('DELETE FROM sessions WHERE created_at < ?').run(cutoff);this.db.exec('DELETE FROM requested_lines WHERE NOT EXISTS (SELECT 1 FROM sessions WHERE sessions.id=requested_lines.session_id)');});const s={id:randomBytes(32).toString('hex'),csrf:randomBytes(32).toString('hex'),createdAt:new Date().toISOString()};this.db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(s.id,s.csrf,s.createdAt);return s;}
  getSession(id:string):Session|null{const s=this.db.prepare('SELECT * FROM sessions WHERE id=?').get(id) as {id:string;csrf:string;created_at:string}|undefined;if(!s||Date.now()-Date.parse(s.created_at)>24*3600_000)return null;return{id:s.id,csrf:s.csrf,createdAt:s.created_at};}
  private own(sessionId:string){if(!this.getSession(sessionId))throw new AppError('SESSION','Сессия истекла. Обновите страницу.',401);}

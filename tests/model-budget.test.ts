@@ -2,7 +2,7 @@ import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, rmdirSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { createModelBudget, ModelBudget } from '../src/server/model-budget';
+import { createModelBudget, ModelBudget, type ModelBudgetOptions } from '../src/server/model-budget';
 
 function database(t: TestContext) {
   const root = resolve('.tmp'); mkdirSync(root, { recursive: true });
@@ -10,8 +10,8 @@ function database(t: TestContext) {
   const databasePath = join(directory, 'budget.sqlite');
   const connections: ModelBudget[] = [];
   t.after(() => { for (const budget of connections) budget.close(); for (const suffix of ['', '-wal', '-shm']) if (existsSync(databasePath + suffix)) unlinkSync(databasePath + suffix); rmdirSync(directory); });
-  return (maxCalls = 6, maxUSD = 0.25) => {
-    const budget = new ModelBudget({ databasePath, maxCalls, maxUSD }); connections.push(budget); return budget;
+  return (maxCalls = 6, maxUSD = 0.25, purpose?: ModelBudgetOptions['purpose']) => {
+    const budget = new ModelBudget({ databasePath, maxCalls, maxUSD, purpose }); connections.push(budget); return budget;
   };
 }
 
@@ -103,4 +103,29 @@ test('configuration cannot exceed the approved limits or use a relative database
   assert.throws(() => new ModelBudget({ databasePath: '.tmp/relative.sqlite', maxCalls: 6, maxUSD: 0.25 }), { code: 'MODEL_BUDGET_CONFIG' });
   const disabled = open(0, 0);
   assert.throws(() => disabled.reserve('gpt-4.1-mini'), { code: 'MODEL_BUDGET_EXHAUSTED' });
+});
+
+test('GPT-5.5 reserves its bounded input and output, and counts reasoning within output cost', t => {
+  const budget = database(t)();
+  const attempt = budget.reserve('gpt-5.5', { inputTokens: 1000, outputTokens: 100 });
+  assert.equal(budget.status().committedUSD, 0.008);
+  budget.settle(attempt.attemptId, { status: 'completed', returnedModel: 'gpt-5.5-2026-04-23', inputTokens: 500, outputTokens: 80, reasoningTokens: 50, durationMs: 1000 });
+  assert.equal(budget.status().committedUSD, 0.0049);
+  assert.equal(budget.status().attempts[0].reasoningTokens, 50);
+  assert.throws(() => budget.reserve('gpt-5.5'), { code: 'MODEL_BUDGET_BOUNDS' });
+});
+
+test('demo has its own persistent allowance and cannot reuse or reset the acceptance ledger', t => {
+  const acceptance = database(t); const demo = database(t);
+  const acceptanceBudget = acceptance(1);
+  acceptanceBudget.reserve('gpt-4.1-mini'); acceptanceBudget.close();
+  assert.throws(() => acceptance(6, 0.25, 'demo'), { code: 'MODEL_BUDGET_CONFIG' });
+  assert.throws(() => acceptance(6).reserve('gpt-4.1-mini'), { code: 'MODEL_BUDGET_EXHAUSTED' });
+  const demoBudget = demo(100, 1, 'demo');
+  for (let i = 0; i < 7; i++) demoBudget.reserve('gpt-5.5', { inputTokens: 1000, outputTokens: 100 });
+  demoBudget.close();
+  assert.equal(demo(100, 1, 'demo').status().callsUsed, 7);
+  assert.equal(demo(100, 1, 'demo').status().committedUSD, 0.056);
+  assert.throws(() => demo(101, 1, 'demo'), { code: 'MODEL_BUDGET_CONFIG' });
+  assert.throws(() => demo(100, 1.01, 'demo'), { code: 'MODEL_BUDGET_CONFIG' });
 });

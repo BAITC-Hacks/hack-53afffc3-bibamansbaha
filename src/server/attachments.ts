@@ -12,7 +12,7 @@ export interface VisionProvider {
 
 export interface AttachmentLine { query: string; quantity: number; unit?: string; rawUnit?: string; rawQuantity?: number; sourceText?: string; source: string }
 export interface ParsedAttachment { lines: AttachmentLine[]; warnings: string[]; text: string }
-export const ATTACHMENT_LIMITS = { bytes: 8 * 1024 * 1024, rows: 100, pdfPages: 20, scannedPages: 3, processingMs: 45_000, expandedBytes: 32 * 1024 * 1024, text: 100_000 } as const;
+export const ATTACHMENT_LIMITS = { bytes: 4 * 1024 * 1024, rows: 100, pdfPages: 20, scannedPages: 3, processingMs: 45_000, expandedBytes: 32 * 1024 * 1024, text: 100_000 } as const;
 
 export class AttachmentError extends Error {
   constructor(readonly code: string, message: string) { super(message); }
@@ -348,7 +348,7 @@ async function parsePdf(buffer: Buffer, name: string, warnings: string[], vision
 
 async function parseAttachmentCore(file: { name: string; type: string; buffer: Buffer }, vision: VisionProvider | undefined, signal: AbortSignal): Promise<ParsedAttachment> {
   if (!file.buffer.length) fail('EMPTY_FILE', 'Файл пуст.');
-  if (file.buffer.length > ATTACHMENT_LIMITS.bytes) fail('FILE_LIMIT', 'Файл превышает лимит 8 МБ.');
+  if (file.buffer.length > ATTACHMENT_LIMITS.bytes) fail('FILE_LIMIT', 'Файл превышает лимит 4 МБ.');
   const name = path.basename(file.name.replaceAll('\\', '/')).slice(0, 180);
   assertSafeText(name);
   const extension = path.extname(name).toLowerCase();

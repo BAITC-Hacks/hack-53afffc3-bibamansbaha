@@ -22,7 +22,7 @@ for(const mode of ['cold','warm'])await measure(`model text + catalog ${mode}`,a
 });
 const buffer=await readFile('.tmp/demo-files/sample-label.jpg');
 for(const mode of ['cold','warm'])await measure(`JPEG recognition + catalog ${mode}`,async()=>{
- const result=await parseAttachment({name:'new-label.jpg',type:'image/jpeg',buffer},createVisionProvider());
+ const result=await parseAttachment({name:'new-label.jpg',type:'image/jpeg',buffer},await createVisionProvider());
  if(!result.lines.length)throw new Error('No extracted lines');
  for(const line of result.lines)if(!(await catalog.search(line.query)).length)throw new Error('No image-guided match');
 });

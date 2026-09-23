@@ -9,7 +9,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint src tests scripts --ignore-pattern '*.mjs'",
     "test": "tsx --test tests/*.test.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
@@ -19,6 +20,7 @@
     "next": "16.3.6",
     "openai": "^6.0.0",
     "pdfjs-dist": "6.3.289",
+    "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "yauzl": "^3.2.0",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@playwright/test": "1.62.1",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@types/yauzl": "^2.10.3",
@@ -37,7 +40,7 @@
     "typescript": "6.0.3"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   },
   "overrides": {
     "exceljs": {

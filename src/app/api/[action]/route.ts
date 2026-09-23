@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { runtime as services } from '../../../server/runtime';
+import { runtime as services, withPersistence } from '../../../server/runtime';
 import { authorize, session, reply, failure, boundedBody, bodyJson } from '../../../server/http';
 import { AppError } from '../../../server/errors';
 import { parseAttachment } from '../../../server/attachments';
@@ -13,17 +13,18 @@ import { explicitQuantityUnit } from '../../../shared/units';
 import type { AppState, RequestedLine, Match } from '../../../shared/types';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
+export const maxDuration=60;
 type Context={params:Promise<{action:string}>};
 const lineSchema=z.object({id:z.string().max(100),query:z.string().min(1).max(2000),quantity:z.number().positive().max(1_000_000),unit:z.string().max(30).optional(),rawUnit:z.string().max(30).optional(),rawQuantity:z.number().positive().optional(),sourceText:z.string().max(300).optional(),source:z.string().max(300),selectedId:z.string().max(80).optional(),selection:z.enum(['auto','manual','excluded']).optional(),unitConfirmed:z.boolean().optional()});
-async function state(s:{id:string;csrf:string}):Promise<AppState>{try{await services.catalog.load();}catch{/* Preserve explicit unavailable state. */}return{messages:services.cart.messages(s.id),cart:services.cart.getCart(s.id),proposal:services.cart.currentProposal(s.id),requestedLines:services.cart.requestedLines(s.id),catalog:services.catalog.status(),model:modelStatus(),csrf:s.csrf};}
-async function matchLines(s:string,lines:z.infer<typeof lineSchema>[]):Promise<RequestedLine[]>{return services.cart.saveRequestedLines(s,await matchRequestedLines(services.catalog,lines,services.cart.requestedLines(s)));}export async function GET(request:NextRequest,context:Context){try{if((await context.params).action!=='state')throw new AppError('NOT_FOUND','Страница API не найдена.',404);const s=session(request);return reply(await state(s),s);}catch(e){return failure(e);}}
-export async function POST(request:NextRequest,context:Context){try{
+async function state(s:{id:string;csrf:string}):Promise<AppState>{try{await services.catalog.load();}catch{/* Preserve explicit unavailable state. */}return{messages:services.cart.messages(s.id),cart:services.cart.getCart(s.id),proposal:services.cart.currentProposal(s.id),requestedLines:services.cart.requestedLines(s.id),catalog:services.catalog.status(),model:await modelStatus(),csrf:s.csrf};}
+async function matchLines(s:string,lines:z.infer<typeof lineSchema>[]):Promise<RequestedLine[]>{return services.cart.saveRequestedLines(s,await matchRequestedLines(services.catalog,lines,services.cart.requestedLines(s)));}async function getAction(request:NextRequest,context:Context){try{if((await context.params).action!=='state')throw new AppError('NOT_FOUND','Страница API не найдена.',404);const s=session(request);return reply(await state(s),s);}catch(e){return failure(e);}}
+async function postAction(request:NextRequest,context:Context){try{
  const action=(await context.params).action;const s=session(request,false);authorize(request,s);
  if(action==='parse'){
-  const bytes=await boundedBody(request,8*1024*1024+64*1024);
+  const bytes=await boundedBody(request,4*1024*1024+64*1024);
   const form=await new Request(request.url,{method:'POST',headers:{'content-type':request.headers.get('content-type')??''},body:bytes}).formData();
   const file=form.get('file');if(!(file instanceof File))throw new AppError('FILE','Выберите файл.');
-  const parsed=await parseAttachment({name:file.name,type:file.type,buffer:Buffer.from(await file.arrayBuffer())},createVisionProvider());
+  const parsed=await parseAttachment({name:file.name,type:file.type,buffer:Buffer.from(await file.arrayBuffer())},await createVisionProvider());
   const lines=await matchLines(s.id,parsed.lines.map(l=>({...l,id:randomUUID()})));
   return reply({lines,warnings:parsed.warnings},s);
  }
@@ -52,7 +53,7 @@ export async function POST(request:NextRequest,context:Context){try{
   const {text}=z.object({text:z.string().trim().min(1).max(8000)}).strict().parse(body);const history=services.cart.messages(s.id);services.cart.addMessage(s.id,{role:'user',text});
   if(/^(?:да[,!\s]*)?(?:добавь|добавить|подтверждаю)[.!\s]*$/i.test(text)||/^(?:нет|спасибо|не добавляй)[.!\s]*$/i.test(text)){services.cart.addMessage(s.id,{role:'assistant',text:'Корзина не изменена. Для добавления проверьте состав, цену и количество в предложении и нажмите кнопку подтверждения.'});return reply({state:await state(s)},s);}
   let query=text;const explicit=explicitQuantityUnit(text);let quantity:number|undefined=explicit?.quantity;let requestedUnit:string|null=explicit?.unit??null;let terms=/оплат|достав|минимальн|парти[яию]|самовывоз/i.test(text);let notice='';
-  if(modelStatus().configured){try{const parsed=await interpretRequest(text,history.slice(-6).map(m=>m.text+(m.products?`\nАртикулы: ${m.products.map(p=>p.product.sku).join(', ')}`:'')));query=parsed.query;quantity=parsed.quantity??quantity;requestedUnit=parsed.unit??requestedUnit;terms=terms||parsed.intent==='terms';if(parsed.intent==='clarify'&&!terms){services.cart.addMessage(s.id,{role:'assistant',text:'Уточните артикул, маркировку или параметры товара. Можно загрузить спецификацию или фото маркировки.'});return reply({state:await state(s)},s);}}catch{notice='AI сейчас недоступен; выполнен обычный поиск по введённому тексту. ';}}
+  if((await modelStatus()).configured){try{const parsed=await interpretRequest(text,history.slice(-6).map(m=>m.text+(m.products?`\nАртикулы: ${m.products.map(p=>p.product.sku).join(', ')}`:'')));query=parsed.query;quantity=parsed.quantity??quantity;requestedUnit=parsed.unit??requestedUnit;terms=terms||parsed.intent==='terms';if(parsed.intent==='clarify'&&!terms){services.cart.addMessage(s.id,{role:'assistant',text:'Уточните артикул, маркировку или параметры товара. Можно загрузить спецификацию или фото маркировки.'});return reply({state:await state(s)},s);}}catch{notice='AI сейчас недоступен; выполнен обычный поиск по введённому тексту. ';}}
   else notice='Обычный поиск без AI. ';
   if(terms){services.cart.addMessage(s.id,{role:'assistant',text:purchaseTerms.map(t=>`${t.topic}: ${t.text}\nИсточник: ${t.sourceUrl} (проверено ${t.checkedAt})`).join('\n\n')});return reply({state:await state(s)},s);}
   let matches:Match[]=await services.catalog.search(query);
@@ -66,3 +67,6 @@ export async function POST(request:NextRequest,context:Context){try{
  }
  throw new AppError('NOT_FOUND','Метод API не найден.',404);
  }catch(e){return failure(e);}}
+
+export async function GET(request:NextRequest,context:Context){try{return await withPersistence(request,()=>getAction(request,context));}catch(error){return failure(error);}}
+export async function POST(request:NextRequest,context:Context){try{return await withPersistence(request,()=>postAction(request,context));}catch(error){return failure(error);}}

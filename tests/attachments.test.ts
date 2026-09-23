@@ -176,9 +176,9 @@ test('model without runtime configuration is unavailable and does not borrow hos
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_MODEL;
   try {
-    assert.equal(modelStatus().configured, false);
-    assert.equal(modelStatus().verified, false);
-    assert.equal(createVisionProvider(), undefined);
+    assert.equal((await modelStatus()).configured, false);
+    assert.equal((await modelStatus()).verified, false);
+    assert.equal(await createVisionProvider(), undefined);
     await assert.rejects(interpretRequest('кабель', []), { code: 'MODEL_UNAVAILABLE' });
   } finally {
     if (oldKey !== undefined) process.env.OPENAI_API_KEY = oldKey;

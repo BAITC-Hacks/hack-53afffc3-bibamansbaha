@@ -1,0 +1,31 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { Pool } from 'pg';
+
+test('Postgres persists cart across invocations, isolates sessions and serializes duplicate confirmation', {skip:!process.env.TEST_DATABASE_URL}, async t=>{
+ const admin=new Pool({connectionString:process.env.TEST_DATABASE_URL});
+ const schema='ekt_test_'+Date.now();await admin.query(`CREATE SCHEMA ${schema}`);
+ const url=new URL(process.env.TEST_DATABASE_URL!);url.searchParams.set('options',`-c search_path=${schema}`);
+ process.env.DATABASE_URL=url.toString();process.env.CATALOG_MODE='fixture';process.env.OPENAI_API_KEY='';process.env.OPENAI_MODEL='';process.env.APP_ORIGIN='http://127.0.0.1:3000';
+ const {postgres}=await import('../src/server/postgres');
+ t.after(async()=>{await postgres().end();await admin.query(`DROP SCHEMA ${schema} CASCADE`);await admin.end();});
+ await postgres().query(readFileSync(new URL('../migrations/001_neon.sql',import.meta.url),'utf8'));
+ const {GET,POST}=await import('../src/app/api/[action]/route');const {NextRequest}=await import('next/server');
+ const first=await GET(new NextRequest('http://127.0.0.1:3000/api/state'),{params:Promise.resolve({action:'state'})});assert.equal(first.status,200);
+ const cookie=first.headers.get('set-cookie')!.split(';')[0];const state=await first.json();
+ const post=(action:string,body:unknown)=>POST(new NextRequest('http://127.0.0.1:3000/api/'+action,{method:'POST',headers:{cookie,origin:'http://127.0.0.1:3000','x-csrf-token':state.csrf,'content-type':'application/json'},body:JSON.stringify(body)}),{params:Promise.resolve({action})});
+ const proposed=await post('proposal',{lines:[{productId:'DEMO-CABLE',quantity:1.25}]});assert.equal(proposed.status,200);const {proposal}=await proposed.json();
+ const input={proposalId:proposal.id,version:proposal.version,hash:proposal.hash,confirmed:true};
+ const results=await Promise.all([post('confirm',input),post('confirm',input)]);
+ assert.deepEqual(results.map(r=>r.status),[200,200]);
+ const carts=await Promise.all(results.map(r=>r.json()));assert.equal(carts[0].cart.revision,1);assert.deepEqual(carts[0].cart,carts[1].cart);
+ const reload=await GET(new NextRequest('http://127.0.0.1:3000/api/state',{headers:{cookie}}),{params:Promise.resolve({action:'state'})});const restored=await reload.json();assert.equal(restored.cart.lines[0].quantity,1.25);assert.equal(restored.cart.revision,1);
+ const other=await GET(new NextRequest('http://127.0.0.1:3000/api/state'),{params:Promise.resolve({action:'state'})});assert.equal((await other.json()).cart.lines.length,0);
+ const denied=await post('confirm',{...input,confirmed:false});assert.equal(denied.status,400);
+ const {PostgresModelBudget}=await import('../src/server/model-budget-pg');const a=new PostgresModelBudget('acceptance');const d=new PostgresModelBudget('demo');
+ const attempts=await Promise.allSettled(Array.from({length:9},()=>a.reserve('gpt-5.5',{inputTokens:1000,outputTokens:100})));
+ assert.equal(attempts.filter(r=>r.status==='fulfilled').length,6);assert.equal((await a.status()).remainingCalls,0);
+ await d.reserve('gpt-5.5',{inputTokens:1000,outputTokens:100});assert.equal((await d.status()).remainingCalls,99);assert.equal((await a.status()).remainingCalls,0);
+ const snapshot=await postgres().query('SELECT state FROM ekt_sessions WHERE id=$1',[cookie.split('=')[1]]);assert.equal(JSON.parse(snapshot.rows[0].state.cart).revision,1);
+});

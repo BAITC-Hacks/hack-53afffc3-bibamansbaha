@@ -1,0 +1,16 @@
+.env*
+.tmp
+.data
+.agents
+.codex
+.claude
+.git
+node_modules
+.next*
+test-results
+playwright-report
+*.sqlite*
+*.db*
+*.docx
+*.pem
+*.key

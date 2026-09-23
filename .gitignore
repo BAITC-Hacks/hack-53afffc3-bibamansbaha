@@ -36,3 +36,8 @@ playwright-report/
 .codex/
 SKILLS_MCP_TRANSFER.md
 skills-lock.json
+.vercel/
+.neon/
+
+.vercel
+.env*
