@@ -1,0 +1,35 @@
+# Local credentials, partner documents and user uploads
+.env
+.env.*
+!.env.example
+*.docx
+*.doc
+*.pem
+*.key
+credentials*
+secrets*
+.private/
+uploads/
+snapshots/
+# Dependencies, generated files and local diagnostics
+node_modules/
+.next/
+dist/
+coverage/
+test-results/
+playwright-report/
+*.log
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+.data/
+.tmp/
+.playwright/
+.playwright-cli/
+# Locally installed tool instructions are not application source
+.agents/
+.claude/
+.codex/
+SKILLS_MCP_TRANSFER.md
+skills-lock.json
