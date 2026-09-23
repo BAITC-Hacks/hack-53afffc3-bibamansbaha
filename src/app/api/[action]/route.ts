@@ -7,13 +7,14 @@ import { AppError } from '../../../server/errors';
 import { parseAttachment } from '../../../server/attachments';
 import { modelStatus, createVisionProvider, interpretRequest } from '../../../server/model';
 import { purchaseTerms } from '../../../server/purchase-terms';
+import { assertSafeText } from '../../../server/privacy';
 import type { AppState, RequestedLine, Match } from '../../../shared/types';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 type Context={params:Promise<{action:string}>};
 const lineSchema=z.object({id:z.string().max(100),query:z.string().min(1).max(2000),quantity:z.number().positive().max(1_000_000),unit:z.string().max(30).optional(),source:z.string().max(300),selectedId:z.string().max(80).optional()});
 async function state(s:{id:string;csrf:string}):Promise<AppState>{try{await services.catalog.load();}catch{/* Preserve the explicit unavailable state instead of switching datasets. */}return{messages:services.cart.messages(s.id),cart:services.cart.getCart(s.id),proposal:services.cart.currentProposal(s.id),catalog:services.catalog.status(),model:modelStatus(),csrf:s.csrf};}
-async function matchLines(lines:z.infer<typeof lineSchema>[]):Promise<RequestedLine[]>{const result:RequestedLine[]=[];for(const line of lines){let matches=await services.catalog.search(line.query);const exact=matches.find(m=>m.kind==='exact');if(exact?.product.stock===0)matches=[...matches,...await services.catalog.alternatives(exact.product)];const requested=matches.find(m=>m.product.id===line.selectedId);const selected=requested??(exact&&exact.product.stock!==0?exact:undefined);result.push({...line,selectedId:selected?.product.id,matches,status:selected?(selected.kind==='alternative'?'alternative':'exact'):matches.length?'clarify':'not_found'});}return result;}
+async function matchLines(lines:z.infer<typeof lineSchema>[]):Promise<RequestedLine[]>{const result:RequestedLine[]=[];for(const line of lines){assertSafeText(JSON.stringify(line));let matches=await services.catalog.search(line.query);const exact=matches.find(m=>m.kind==='exact');if(exact?.product.stock===0)matches=[...matches,...await services.catalog.alternatives(exact.product)];const requested=matches.find(m=>m.product.id===line.selectedId);const selected=requested??(exact&&exact.product.stock!==0?exact:undefined);result.push({...line,selectedId:selected?.product.id,matches,status:selected?(selected.kind==='alternative'?'alternative':'exact'):matches.length?'clarify':'not_found'});}return result;}
 export async function GET(request:NextRequest,context:Context){try{if((await context.params).action!=='state')throw new AppError('NOT_FOUND','Страница API не найдена.',404);const s=session(request);return reply(await state(s),s);}catch(e){return failure(e);}}
 export async function POST(request:NextRequest,context:Context){try{
  const action=(await context.params).action;const s=session(request,false);authorize(request,s);

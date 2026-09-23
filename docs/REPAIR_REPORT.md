@@ -7,3 +7,11 @@ Order: payment privacy (EKT-002), agreed cart effects and safe arithmetic (001/0
 Tests will use isolated sessions/databases and deterministic providers, preserving existing tests. No paid model calls are planned: previous usage is unknown, so any new live model verification is `blocked_budget`. Native orders and guessed integration APIs are excluded. Existing user data will not be cleaned without the required separate review/authorization.
 
 Initial status: EKT-001–016 `not_fixed`; EKT-017 `not_fixed` (risk, not a proven root cause); EKT-018/019/020 `blocked_external` pending verification. Each result will gain a regression, evidence, commit and final status as work proceeds.
+
+## Checkpoint 1 — privacy and financial planning
+
+EKT-002: new payment text is rejected at persistence, extraction and provider boundaries; old messages/context and old proposal text are masked on read. Independent review found whitespace/CVV and legacy-proposal gaps; regressions reproduced them before correction. Five privacy tests pass with a network spy (zero paid calls). Counts-only dry-run on existing `.data/ekt.sqlite`: 3 messages, 0 matches, no writes. Targeted cleanup demonstrated on a separate synthetic DB; physical WAL/backup erasure and raw image screening are not claimed.
+
+EKT-001/014: server proposal now carries the initial cart revision and full before/after/delta/repricing plan. Confirm uses the same planner and an atomic revision check; legacy proposals cannot use the old contract. Checked arithmetic rejects unsafe totals before Number conversion. The original financial example, decreasing/unchanged prices and overflow regressions pass; browser verification remains pending.
+
+Current checks: typecheck/lint passed; existing and new unit/integration tests 45 passed, 0 failed. No dependencies changed. Remaining units/file/UI fixes and final production/E2E verification are in progress; no final closure is claimed yet.

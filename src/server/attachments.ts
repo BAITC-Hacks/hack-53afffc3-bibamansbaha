@@ -2,6 +2,8 @@ import path from 'node:path';
 import ExcelJS from 'exceljs';
 import * as yauzl from 'yauzl';
 import { XMLParser } from 'fast-xml-parser';
+import { assertSafeText } from './privacy';
+import { AppError } from './errors';
 
 export interface VisionProvider {
   readImage(buffer: Buffer, mime: string, signal?: AbortSignal): Promise<string>;
@@ -273,6 +275,7 @@ async function parsePdf(buffer: Buffer, name: string, warnings: string[], vision
       if (rows.length === before) scanned.push(index);
       page.cleanup();
     }
+    assertSafeText(rows.map(row => row.cells.join(' ')).join('\n'));
     if (scanned.length && vision) {
       if (scanned.length > ATTACHMENT_LIMITS.scannedPages) fail('SCAN_PAGE_LIMIT', 'В PDF более 3 страниц без текста. Для распознавания разделите скан на файлы до 3 страниц.');
       const { createCanvas } = await import('@napi-rs/canvas');
@@ -294,6 +297,7 @@ async function parsePdf(buffer: Buffer, name: string, warnings: string[], vision
         canvas.width = 1;
         canvas.height = 1;
         const text = await vision.readImage(jpeg, 'image/jpeg', signal);
+        assertSafeText(text);
         totalText += text.length;
         if (totalText > ATTACHMENT_LIMITS.text) fail('TEXT_LIMIT', 'В PDF слишком много распознанного текста. Разделите файл.');
         if (!text.trim()) warnings.push(`${name}, страница ${index}: читаемая маркировка не найдена.`);
@@ -312,6 +316,7 @@ async function parseAttachmentCore(file: { name: string; type: string; buffer: B
   if (!file.buffer.length) fail('EMPTY_FILE', 'Файл пуст.');
   if (file.buffer.length > ATTACHMENT_LIMITS.bytes) fail('FILE_LIMIT', 'Файл превышает лимит 8 МБ.');
   const name = path.basename(file.name.replaceAll('\\', '/')).slice(0, 180);
+  assertSafeText(name);
   const extension = path.extname(name).toLowerCase();
   if (['.xls', '.doc'].includes(extension)) fail('LEGACY_FORMAT', 'Старые XLS/DOC не поддерживаются. Сохраните файл как XLSX/DOCX.');
   const permittedMime: Record<string, string[]> = {
@@ -354,12 +359,13 @@ async function parseAttachmentCore(file: { name: string; type: string; buffer: B
       rows = cells.map((row, index) => ({ cells: row, source: `${name}, строка ${index + 1}` }));
     } else fail('UNSUPPORTED_FORMAT', 'Поддерживаются XLSX, DOCX, PDF с текстовым слоем, TXT/CSV/TSV и JPEG/PNG/WebP.');
     const text = rows.map((row) => row.cells.join('\t')).join('\n');
+    assertSafeText(text);
     if (text.length > ATTACHMENT_LIMITS.text) fail('TEXT_LIMIT', 'Извлечённый текст превышает лимит. Разделите файл.');
     const lines = parseRows(rows, warnings);
     if (!lines.length && !warnings.length) warnings.push('Позиции не найдены. Проверьте, что файл содержит наименования товаров и количества.');
     return { lines, warnings: [...new Set(warnings)], text };
   } catch (error) {
-    if (error instanceof AttachmentError || (error instanceof Error && 'code' in error && error.code === 'MODEL_UNAVAILABLE')) throw error;
+    if (error instanceof AppError || error instanceof AttachmentError || (error instanceof Error && 'code' in error && error.code === 'MODEL_UNAVAILABLE')) throw error;
     throw new AttachmentError('PARSE_FAILED', 'Не удалось прочитать файл. Проверьте формат, отсутствие пароля и целостность документа.');
   }
 }
