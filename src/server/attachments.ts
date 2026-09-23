@@ -4,12 +4,13 @@ import * as yauzl from 'yauzl';
 import { XMLParser } from 'fast-xml-parser';
 import { assertSafeText } from './privacy';
 import { AppError } from './errors';
+import { explicitQuantityUnit, normalizeUnit } from '../shared/units';
 
 export interface VisionProvider {
   readImage(buffer: Buffer, mime: string, signal?: AbortSignal): Promise<string>;
 }
 
-export interface AttachmentLine { query: string; quantity: number; unit?: string; source: string }
+export interface AttachmentLine { query: string; quantity: number; unit?: string; rawUnit?: string; rawQuantity?: number; sourceText?: string; source: string }
 export interface ParsedAttachment { lines: AttachmentLine[]; warnings: string[]; text: string }
 export const ATTACHMENT_LIMITS = { bytes: 8 * 1024 * 1024, rows: 100, pdfPages: 20, scannedPages: 3, processingMs: 45_000, expandedBytes: 32 * 1024 * 1024, text: 100_000 } as const;
 
@@ -19,8 +20,12 @@ export class AttachmentError extends Error {
 
 function fail(code: string, message: string): never { throw new AttachmentError(code, message); }
 const clean = (value: string) => value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/\s+/g, ' ').trim();
-const normalizeUnit = (value: string) => ({ 'штук': 'шт', 'штука': 'шт', 'шт.': 'шт', 'метр': 'м', 'метров': 'м', 'м.': 'м', 'pcs': 'шт', 'pc': 'шт', 'm': 'м' }[value.toLowerCase()] || value.toLowerCase());
+const queryHeaderPattern = /^(наименование(?: товара)?|товар|материал|название|артикул|sku|код(?: товара)?|id|description|product|name)$/i;
+const quantityHeaderPattern = /^(количество|кол[ -]?во|кол\.?|quantity|qty)$/i;
 const isUnit = (value: string) => /^(шт\.?|штук|штука|м\.?|метр|метров|кг|уп\.?|упак\.?|компл\.?|pcs?|m)$/i.test(value);
+function warnUnit(unit: string | undefined, source: string, warnings: string[]) {
+  if (unit && !['шт', 'м', 'кг'].includes(normalizeUnit(unit))) warnings.push(`${source}: единица «${unit}» требует проверки и согласования с единицей каталога; пересчёт не выполнялся.`);
+}
 const quantity = (value: string) => {
   if (!/^\d+(?:[.,]\d+)?$/.test(value.trim())) return undefined;
   const number = Number(value.replace(',', '.'));
@@ -70,8 +75,8 @@ function parseRows(rows: { cells: string[]; source: string }[], warnings: string
   for (const { cells: raw, source } of rows) {
     const cells = raw.map(clean);
     if (!cells.some(Boolean)) continue;
-    const queryHeader = cells.findIndex((cell) => /^(наименование(?: товара)?|товар|материал|название|артикул|description|product|name)$/i.test(cell));
-    const quantityHeader = cells.findIndex((cell) => /^(количество|кол[ -]?во|кол\.?|quantity|qty)$/i.test(cell));
+    const queryHeader = cells.findIndex((cell) => queryHeaderPattern.test(cell));
+    const quantityHeader = cells.findIndex((cell) => quantityHeaderPattern.test(cell));
     if (queryHeader >= 0 && (quantityHeader >= 0 || cells.length > 1)) {
       columns = { query: queryHeader, quantity: quantityHeader, unit: cells.findIndex((cell) => /^(единица(?: измерения)?|ед\.?\s?(?:изм\.?)?|unit|units)$/i.test(cell)) };
       continue;
@@ -83,8 +88,12 @@ function parseRows(rows: { cells: string[]; source: string }[], warnings: string
       const count = quantity(quantityOnly[1]);
       if (previous && warningIndex >= 0 && count !== undefined) {
         previous.quantity = count;
+        previous.rawQuantity = count;
         previous.unit = normalizeUnit(quantityOnly[2]);
+        previous.rawUnit = quantityOnly[2];
+        previous.sourceText = `${previous.sourceText ?? previous.query} ; ${cells[0]}`.slice(0, 300);
         warnings.splice(warningIndex, 1);
+        warnUnit(quantityOnly[2], source, warnings);
       } else warnings.push(`${source}: количество без названия товара пропущено; проверьте исходный файл.`);
       continue;
     }
@@ -95,18 +104,24 @@ function parseRows(rows: { cells: string[]; source: string }[], warnings: string
       warnings.push(`${source}: количество «${cells[columns.quantity].slice(0, 30)}» не распознано; проверьте строку.`);
     }
     if (!columns && cells.length > 1) {
-      // Headerless rows accept a name followed by quantity/unit, optionally preceded by row number.
-      const start = /^\d+[.)]?$/.test(cells[0] || '') && cells.length > 2 ? 1 : 0;
+      // Three-column rows are SKU/name, quantity, unit. Digits alone are an identifier.
+      const start = /^\d+[.)]$/.test(cells[0] || '') && cells.length === 4 ? 1 : 0;
+      if (cells.length - start > 3) fail('COLUMN_AMBIGUITY', `${source}: колонки неоднозначны. Добавьте заголовки «Артикул», «Количество», «Единица» и «№» для нумерации.`);
       query = cells[start] || '';
       count = quantity(cells[start + 1] || '');
-      if (isUnit(cells[start + 1] || '')) {
+      if (isUnit(cells[start + 1] || '') || (count === undefined && quantity(cells[start + 2] || '') !== undefined)) {
         unit = cells[start + 1];
         count = quantity(cells[start + 2] || '');
-      } else if (isUnit(cells[start + 2] || '')) unit = cells[start + 2];
+      } else if (count !== undefined && cells[start + 2]) unit = cells[start + 2];
       if (count === undefined && cells.length > start + 1) query = cells.slice(start).filter(Boolean).join(' ');
     }
     if (!columns && cells.length === 1) {
-      const match = query.match(/^(.*?)\s*(?:[—–;]|\s-\s)?\s+(\d+(?:[.,]\d+)?)\s*(шт\.?|штук|м\.?|метр(?:ов)?|кг|уп\.?|упак\.?|компл\.?|pcs?|m)\s*$/i);
+      // An explicit separator makes an otherwise unknown unit reviewable, without
+      // interpreting bare electrical ratings such as "Автомат 16 А" as quantities.
+      const explicit = query.match(/^(.*?)\s*(?:[—–]|\s-\s)\s*(\d+(?:[.,]\d+)?)\s+([^\d;]{1,30})\s*$/u);
+      const stated = explicitQuantityUnit(query);
+      const trailing = stated && query.endsWith(stated.unitEvidence) ? [query, query.slice(0, -stated.unitEvidence.length).trim(), String(stated.quantity), stated.unit] : null;
+      const match = explicit ?? query.match(/^(.*?)\s+(\d+(?:[.,]\d+)?)\s*(шт\.?|штук|м\.?|метр(?:ов)?|кг|уп\.?|упак\.?|компл\.?|pcs?|m)\s*$/i) ?? trailing;
       if (match && clean(match[1]).length > 1) {
         query = clean(match[1]).replace(/[—–-]\s*$/, '').trim();
         count = quantity(match[2]);
@@ -116,7 +131,9 @@ function parseRows(rows: { cells: string[]; source: string }[], warnings: string
     if (!query || /^(?:спецификация|список товаров|ведомость|итого|всего|№|номер)\s*[:.]?$/i.test(query)) continue;
     if (query.length > 2_000) fail('TEXT_LIMIT', 'Одна строка превышает 2000 символов. Сократите спецификацию.');
     if (count === undefined) warnings.push(`${source}: количество не задано — предварительно 1; проверьте перед подтверждением.`);
-    lines.push({ query, quantity: count ?? 1, ...(unit ? { unit: normalizeUnit(unit) } : {}), source });
+    if (unit && unit.length > 30) fail('UNIT_LIMIT', `${source}: единица длиннее 30 символов; проверьте колонки спецификации.`);
+    warnUnit(unit, source, warnings);
+    lines.push({ query, quantity: count ?? 1, ...(count !== undefined ? { rawQuantity: count } : {}), ...(unit ? { unit: normalizeUnit(unit), rawUnit: unit } : {}), sourceText: cells.join(' ; ').slice(0, 300), source });
     if (lines.length > ATTACHMENT_LIMITS.rows) fail('ROW_LIMIT', 'В спецификации более 100 позиций. Разделите файл.');
   }
   return lines;
@@ -186,6 +203,17 @@ function officeText(value: ExcelJS.CellValue): string {
   return String(value);
 }
 
+function identifierText(cell: ExcelJS.Cell, source: string): string {
+  if (typeof cell.value !== 'number') return officeText(cell.value);
+  // ExcelJS 4.4 exposes numFmt, but cell.text returns the unformatted value.
+  // Interpret only an unambiguous integer zero mask; never format quantity cells.
+  if (!Number.isSafeInteger(cell.value) || cell.value < 0) fail('IDENTIFIER_FORMAT', `${source}: числовой артикул неоднозначен. Сохраните его как текстовую ячейку.`);
+  const format = cell.numFmt || 'General';
+  if (format === 'General' || format === '@') return String(cell.value);
+  if (/^0{1,30}$/.test(format)) return String(cell.value).padStart(format.length, '0');
+  return fail('IDENTIFIER_FORMAT', `${source}: формат числового артикула не поддерживается надёжно. Сохраните отображаемый артикул как текст.`);
+}
+
 async function parseXlsx(buffer: Buffer, name: string, files: Map<string, Buffer>, warnings: string[]) {
   if (!files.has('xl/workbook.xml')) fail('INVALID_OFFICE', 'Файл не является книгой XLSX.');
   const workbook = new ExcelJS.Workbook();
@@ -194,13 +222,18 @@ async function parseXlsx(buffer: Buffer, name: string, files: Map<string, Buffer
   for (const sheet of workbook.worksheets) {
     if (sheet.rowCount > 1_000 || sheet.columnCount > 100) fail('ROW_LIMIT', 'Таблица слишком велика: допустимы 100 позиций и до 100 колонок.');
     if (sheet.state !== 'visible') { warnings.push(`Скрытый лист «${sheet.name}» пропущен.`); continue; }
+    let identifierColumn = 0;
     sheet.eachRow((row, rowNumber) => {
       const cells: string[] = [];
       row.eachCell({ includeEmpty: true }, (cell, column) => {
         if (cell.type === ExcelJS.ValueType.Formula) warnings.push(`${sheet.name}, строка ${rowNumber}: формула пропущена; введите обычное значение.`);
         cells[column - 1] = officeText(cell.value);
       });
-      rows.push({ cells, source: `${name} / ${sheet.name}, строка ${rowNumber}` });
+      const source = `${name} / ${sheet.name}, строка ${rowNumber}`;
+      const header = cells.findIndex((value) => queryHeaderPattern.test(clean(value)));
+      if (header >= 0 && (cells.some((value) => quantityHeaderPattern.test(clean(value))) || cells.length > 1)) identifierColumn = header;
+      else cells[identifierColumn] = identifierText(row.getCell(identifierColumn + 1), source);
+      rows.push({ cells, source });
     });
   }
   return rows;
@@ -213,6 +246,7 @@ function xmlText(nodes: unknown): string {
     if ('#text' in node) return String(node['#text']);
     if ('tab' in node) return '\t';
     if ('br' in node || 'cr' in node) return ' ';
+    if ('p' in node) return `${xmlText(node.p)}\n`;
     return Object.entries(node).filter(([key]) => key !== ':@').map(([, value]) => xmlText(value)).join('');
   }).join('');
 }

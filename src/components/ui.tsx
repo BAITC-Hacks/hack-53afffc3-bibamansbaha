@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { AppState, Product } from '@/shared/types';
+import { useEmbedEvents } from './embed-events';
 
 export type IconName = 'chat' | 'bag' | 'file' | 'arrow' | 'plus' | 'close' | 'check' | 'search' | 'shield' | 'chevron' | 'box' | 'attach' | 'photo' | 'grid';
 const paths: Record<IconName, React.ReactNode> = {
@@ -33,7 +34,8 @@ export function MessageText({ text }: { text: string }) {
 }
 export function unit(product: Product) { return product.unit || 'ед. каталога'; }
 export function Header({ state, active = 'chat' }: { state?: AppState | null; active?: 'chat' | 'cart' | 'embed' }) {
-  const count = state?.cart.lines.length ?? 0;
+  useEmbedEvents(state);
+  const count = state ? state.cart.lines.length : '…';
   return <header className="site-header"><Link href="/" className="brand" aria-label="EKT — ассистент"><span className="brand-mark">EKT<span className="brand-cut"/></span><span className="brand-caption">ЭЛЕКТРОТЕХНИКА<br/>ДЛЯ ВАШИХ ЗАДАЧ</span></Link><nav className="header-nav" aria-label="Основная навигация"><Link href="/" className={active === 'chat' ? 'active' : ''}><Icon name="chat"/>Подбор оборудования</Link><Link href="/cart" className={active === 'cart' ? 'active' : ''}><Icon name="bag"/>Корзина<span className="count">{count}</span></Link></nav><a className="catalog-link" href="https://ekt.kz" target="_blank" rel="noreferrer">Каталог ekt.kz <span aria-hidden="true">↗</span></a></header>;
 }
 export function StatusBar({ state }: { state: AppState }) {

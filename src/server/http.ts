@@ -10,7 +10,7 @@ export function session(request:NextRequest,create=true){const id=request.cookie
 export function authorize(request:NextRequest,s:{id:string;csrf:string}){
  const origin=request.headers.get('origin');const allowed=process.env.APP_ORIGIN??'http://127.0.0.1:3000';
  if(!origin||origin!==allowed||request.headers.get('sec-fetch-site')==='cross-site')throw new AppError('CSRF','Источник запроса не разрешён. Обновите страницу.',403);
- const token=request.headers.get('x-csrf-token')??'';if(token.length!==s.csrf.length||!timingSafeEqual(Buffer.from(token),Buffer.from(s.csrf)))throw new AppError('CSRF','Обновите страницу и повторите действие.',403);
+ const token=request.headers.get('x-csrf-token')??'';const actual=Buffer.from(token);const expected=Buffer.from(s.csrf);if(!/^[a-f0-9]{64}$/.test(token)||actual.length!==expected.length||!timingSafeEqual(actual,expected))throw new AppError('CSRF','Обновите страницу и повторите действие.',403);
  const bucket=requestCounts.get(s.id);if(!bucket||Date.now()-bucket.at>60_000){requestCounts.set(s.id,{at:Date.now(),count:1});if(requestCounts.size>1000)for(const [key,value]of requestCounts)if(Date.now()-value.at>60_000)requestCounts.delete(key);}else if(++bucket.count>40)throw new AppError('RATE_LIMIT','Слишком много запросов. Подождите минуту.',429);
 }
 export function reply(data:unknown,s?:{id:string},status=200){const r=NextResponse.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}});if(s)r.cookies.set('ekt_session',s.id,{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:86400,path:'/'});return r;}

@@ -15,3 +15,9 @@ EKT-002: new payment text is rejected at persistence, extraction and provider bo
 EKT-001/014: server proposal now carries the initial cart revision and full before/after/delta/repricing plan. Confirm uses the same planner and an atomic revision check; legacy proposals cannot use the old contract. Checked arithmetic rejects unsafe totals before Number conversion. The original financial example, decreasing/unchanged prices and overflow regressions pass; browser verification remains pending.
 
 Current checks: typecheck/lint passed; existing and new unit/integration tests 45 passed, 0 failed. No dependencies changed. Remaining units/file/UI fixes and final production/E2E verification are in progress; no final closure is claimed yet.
+
+## Checkpoint 2 — units, files and interface
+
+Server-held requested lines retain original quantities/units, explicit exclusions and quantity-specific unit reviews. Text extraction has deterministic protection when the model drops an explicit packaging unit. Direct proposals cannot bypass unresolved saved rows. File regressions preserve numeric SKU, XLSX zero formats, Word paragraph/run boundaries and unknown units (28 attachment checks passed).
+
+Browser red/green checks cover exact fractional cart editing, stale proposal rejection, Russian offline recovery, server-backed widget counters, modal keyboard/iframe handling and non-overlapping mobile composer. Six main browser scenarios passed after an asynchronous checkbox integration correction; seven widget/layout regressions passed separately. Targeted HTTP/source/model/file suite: 16 passed; typecheck passed. Lint has no errors and one hook cleanup warning pending final review. Catalog latency work and the expanded final regression remain in progress.
