@@ -7,7 +7,7 @@ export function containsPaymentData(text: string): boolean {
   text = text.replace(/\\[nrt]/g, ' ').replace(/[\u200b-\u200d\ufeff]/g, '').replace(/\s+/g, ' ');
   if (/(?:\b(?:cvv2?|cvc2?|card\s*(?:number|no)|expiry|iban)|номер\s*карт[ыа]|реквизит[ыа]?\s*(?:карт|оплат)|срок\s*действия\s*карт)[^\n]{0,60}\d/i.test(text)) return true;
   if (/(?:карт[аы]|visa|mastercard).{0,80}(?:срок\s*действия|valid\s*thru).{0,20}\d{2}\s*[/.-]\s*\d{2,4}/i.test(text)) return true;
-  for (const match of text.matchAll(/(?<!\d)(?:\d[ -]*){12,18}\d(?!\d)/g)) {
+  for (const match of text.matchAll(/(?<![\p{L}\p{N}_-])(?:\d[ -]*){12,18}\d(?![\p{L}\p{N}_-])/gu)) {
     const digits = match[0].replace(/\D/g, '');
     if (digits.length < 13 || digits.length > 19 || /^(\d)\1+$/.test(digits)) continue;
     let sum = 0;

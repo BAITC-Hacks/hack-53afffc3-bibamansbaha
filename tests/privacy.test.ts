@@ -9,8 +9,14 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cleanPaymentMessages } from '../src/server/privacy-maintenance';
+import { containsPaymentData } from '../src/server/privacy';
 
 const synthetic = ['4111', '1111', '1111', '1111'].join(' ');
+test('EKT-002 UUID metadata and embedded product identifiers are not mistaken for a PAN',()=>{
+ for(let value=0;value<100;value++)assert.equal(containsPaymentData(JSON.stringify({id:`abcdef12-abcd-4111-8111-${String(value).padStart(12,'0')}`,text:'DEMO-C25'})),false);
+ assert.equal(containsPaymentData(`SKU${synthetic.replaceAll(' ','')}A`),false);
+ assert.equal(containsPaymentData(synthetic.replaceAll(' ','-')),true);
+});
 test('EKT-002 payment text is rejected before message persistence while product numbers remain intact', (t) => {
   const cart = new CartService(':memory:', new Catalog('fixture'));
   t.after(() => cart.close());

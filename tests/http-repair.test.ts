@@ -21,3 +21,19 @@ test('EKT-002 payment HTTP rejection does not expose or save text in state',asyn
  const state=await GET(new NextRequest(`${process.env.APP_ORIGIN}/api/state`,{headers:{cookie:`ekt_session=${s.id}`}}),ctx('state'));
  const value=await state.json();assert.equal(value.messages.length,0);assert.equal(JSON.stringify(value).includes(sensitive),false);
 });
+
+test('chat selection after a saved specification preserves excluded source lines',async()=>{
+ const s=runtime.cart.createSession();const product=await runtime.catalog.get('DEMO-C25');
+ runtime.cart.saveRequestedLines(s.id,[{id:'file',query:'DEMO-CABLE',quantity:2,unit:'м',source:'file',selection:'excluded',matches:[],status:'clarify'}]);
+ runtime.cart.addMessage(s.id,{role:'assistant',text:'Найден товар',products:[{product,kind:'exact',reasons:[],differences:[]}]});
+ const response=await POST(new NextRequest(`${process.env.APP_ORIGIN}/api/select`,{method:'POST',headers:{origin:process.env.APP_ORIGIN!,cookie:`ekt_session=${s.id}`,'x-csrf-token':s.csrf,'content-type':'application/json'},body:JSON.stringify({productId:product.id,quantity:2})}),ctx('select'));
+ assert.equal(response.status,200);const value=await response.json();assert.equal(value.lines[0].selection,'excluded');assert.deepEqual(value.proposal.lines.map((line:{product:{id:string}})=>line.product.id),['DEMO-C25']);assert.equal(runtime.cart.getCart(s.id).lines.length,0);
+});
+
+test('selecting a new chat card keeps previously selected pending specification positions',async()=>{
+ const s=runtime.cart.createSession();const cable=await runtime.catalog.get('DEMO-CABLE');const other=await runtime.catalog.get('DEMO-C25');
+ runtime.cart.saveRequestedLines(s.id,[{id:'pending-file',query:cable.sku,quantity:2,unit:'м',source:'file',selection:'auto',selectedId:cable.id,matches:[{product:cable,kind:'exact',reasons:[],differences:[]}],status:'exact'}]);
+ await runtime.cart.prepare(s.id,[{lineId:'pending-file',productId:cable.id,quantity:2}]);runtime.cart.addMessage(s.id,{role:'assistant',text:'Другой товар',products:[{product:other,kind:'exact',reasons:[],differences:[]}]});
+ const response=await POST(new NextRequest(`${process.env.APP_ORIGIN}/api/select`,{method:'POST',headers:{origin:process.env.APP_ORIGIN!,cookie:`ekt_session=${s.id}`,'x-csrf-token':s.csrf,'content-type':'application/json'},body:JSON.stringify({productId:other.id,quantity:1})}),ctx('select'));
+ assert.equal(response.status,200);assert.deepEqual((await response.json()).proposal.lines.map((line:{product:{id:string}})=>line.product.id),[cable.id,other.id]);assert.equal(runtime.cart.getCart(s.id).lines.length,0);
+});

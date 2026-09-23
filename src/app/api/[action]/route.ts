@@ -36,9 +36,18 @@ export async function POST(request:NextRequest,context:Context){try{
   return reply({lines:services.cart.saveRequestedLines(s.id,lines)},s);
  }
  if(action==='review-unit'){const data=z.object({lineId:z.string().max(100),confirmed:z.literal(true)}).strict().parse(body);return reply({lines:await services.cart.reviewRequestedUnit(s.id,data.lineId)},s);}
+ if(action==='select'){
+  const data=z.object({productId:z.string().max(80),quantity:z.number().positive().max(1_000_000)}).strict().parse(body);
+  const match=services.cart.messages(s.id).flatMap(m=>m.products??[]).find(m=>m.product.id===data.productId);
+  if(!match)throw new AppError('SOURCE_CONTEXT','Обновите поиск перед выбором товара.',409);
+  const line:RequestedLine={id:randomUUID(),query:match.product.sku,quantity:data.quantity,unit:match.product.unit??undefined,rawUnit:match.product.unit??undefined,rawQuantity:data.quantity,source:'Выбор карточки каталога',matches:[match],selection:'manual',selectedId:data.productId,status:'exact'};
+  const lines=services.cart.saveRequestedLines(s.id,[...services.cart.requestedLines(s.id),line]);
+  const proposal=await services.cart.prepare(s.id,lines.filter(item=>item.selectedId&&item.selection!=='excluded').map(item=>({lineId:item.id,productId:item.selectedId!,quantity:item.quantity})),lines.filter(item=>!item.selectedId||item.selection==='excluded').map(item=>item.query));
+  return reply({lines,proposal,cart:services.cart.getCart(s.id)},s);
+ }
  if(action==='proposal'){const data=z.object({lines:z.array(z.object({productId:z.string(),quantity:z.number(),requestedUnit:z.string().max(30).nullable().optional(),unitConfirmed:z.boolean().optional(),lineId:z.string().max(100).optional()}).strict()).min(1).max(100),excluded:z.array(z.string().max(400)).max(100).default([])}).strict().parse(body);const proposal=await services.cart.prepare(s.id,data.lines,data.excluded);return reply({proposal,cart:services.cart.getCart(s.id)},s);}
  if(action==='confirm'){const data=z.object({proposalId:z.string().uuid(),version:z.number().int().positive(),hash:z.string().length(64),confirmed:z.literal(true)}).strict().parse(body);return reply(await services.cart.confirm(s.id,data),s);}
- if(action==='cart'){const data=z.object({productId:z.string().max(80),quantity:z.number().min(0).max(1_000_000),revision:z.number().int().nonnegative()}).strict().parse(body);return reply({cart:await services.cart.updateCart(s.id,data.productId,data.quantity,data.revision)},s);}
+ if(action==='cart'){const data=z.object({productId:z.string().max(80),quantity:z.number().min(0).max(1_000_000),revision:z.number().int().nonnegative(),review:z.object({quantity:z.number().positive(),unit:z.string().max(30)}).strict().optional()}).strict().parse(body);return reply({cart:await services.cart.updateCart(s.id,data.productId,data.quantity,data.revision,data.review)},s);}
  if(action==='chat'){
   const {text}=z.object({text:z.string().trim().min(1).max(8000)}).strict().parse(body);const history=services.cart.messages(s.id);services.cart.addMessage(s.id,{role:'user',text});
   if(/^(?:да[,!\s]*)?(?:добавь|добавить|подтверждаю)[.!\s]*$/i.test(text)||/^(?:нет|спасибо|не добавляй)[.!\s]*$/i.test(text)){services.cart.addMessage(s.id,{role:'assistant',text:'Корзина не изменена. Для добавления проверьте состав, цену и количество в предложении и нажмите кнопку подтверждения.'});return reply({state:await state(s)},s);}

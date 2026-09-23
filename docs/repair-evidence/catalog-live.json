@@ -1,0 +1,73 @@
+{
+  "checkedAt": "2026-09-23T10:44:56.537Z",
+  "status": "mitigated",
+  "scope": "One-page list load; same-instance warm cache only after success. Detail, LLM and multi-line route timings are not measured here.",
+  "maxAllowedHttpAttempts": 8,
+  "maxPlannedHttpAttempts": 4,
+  "actualTotalHttpAttempts": 1,
+  "runs": [
+    {
+      "stage": "cold",
+      "outcome": "ok",
+      "httpAttempts": 1,
+      "cacheHits": 0,
+      "pages": 1,
+      "timings": {
+        "fetchMs": 201.036,
+        "readMs": 3.552,
+        "normalizeMs": 11,
+        "searchMs": 0,
+        "detailMs": 0,
+        "totalMs": 217
+      },
+      "instanceId": 1,
+      "operationElapsedMs": 217
+    },
+    {
+      "stage": "warm-same-instance",
+      "outcome": "ok",
+      "httpAttempts": 0,
+      "cacheHits": 1,
+      "pages": 0,
+      "timings": {
+        "fetchMs": 0,
+        "readMs": 0,
+        "normalizeMs": 0,
+        "searchMs": 0,
+        "detailMs": 0,
+        "totalMs": 0
+      },
+      "instanceId": 1,
+      "operationElapsedMs": 0
+    }
+  ],
+  "diagnostics": {
+    "mode": "live",
+    "instanceId": 1,
+    "operations": 2,
+    "cacheHits": 1,
+    "cacheMisses": 1,
+    "loadJoins": 0,
+    "detailJoins": 0,
+    "pages": 1,
+    "httpAttempts": 1,
+    "timings": {
+      "fetchMs": 201.03570000000002,
+      "readMs": 3.5523000000000593,
+      "normalizeMs": 11,
+      "searchMs": 0,
+      "detailMs": 0,
+      "totalMs": 217
+    },
+    "operationTimeoutMs": 6000,
+    "cacheTtlMs": 120000,
+    "cacheAgeMs": 61,
+    "lastOperation": {
+      "kind": "load",
+      "elapsedMs": 0,
+      "outcome": "ok"
+    }
+  },
+  "cachePublished": true,
+  "elapsedClock": "Date.now inside Catalog operations, 1 ms resolution. A 0 ms warm sample means below clock resolution. Post-operation settling is excluded."
+}

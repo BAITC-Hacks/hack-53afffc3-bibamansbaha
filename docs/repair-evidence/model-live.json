@@ -1,0 +1,43 @@
+{
+  "at": "2026-09-23T10:46:47.583Z",
+  "model": "gpt-4.1-mini",
+  "attempts": 2,
+  "maximumAttempts": 2,
+  "approvedBudgetUSD": 0.02,
+  "conservativeUpperBoundUSD": 0.01856,
+  "usage": [
+    {
+      "status": 200,
+      "inputTokens": 292,
+      "outputTokens": 30
+    },
+    {
+      "status": 200,
+      "inputTokens": 310,
+      "outputTokens": 28
+    }
+  ],
+  "estimatedCostUSD": 0.0003336,
+  "results": [
+    {
+      "result": {
+        "query": "DEMO-CABLE",
+        "quantity": 2,
+        "unit": "упаковки",
+        "unitEvidence": "2 упаковки",
+        "intent": "search"
+      },
+      "elapsedMs": 2347
+    },
+    {
+      "result": {
+        "query": "DEMO-CABLE",
+        "quantity": 5,
+        "unit": "метров",
+        "unitEvidence": "5 метров",
+        "intent": "search"
+      },
+      "elapsedMs": 1680
+    }
+  ]
+}
